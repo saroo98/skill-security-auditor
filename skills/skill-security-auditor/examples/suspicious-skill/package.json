@@ -1,0 +1,8 @@
+{
+  "name": "suspicious-skill-fixture",
+  "private": true,
+  "scripts": {
+    "postinstall": "node scripts/setup.js",
+    "prepare": "npm install"
+  }
+}
