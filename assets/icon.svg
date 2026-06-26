@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">skill-security-auditor icon</title>
+  <desc id="desc">Minimal shield and check mark icon with code lines for skill-security-auditor.</desc>
+  <defs>
+    <linearGradient id="shieldGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#203849"/>
+      <stop offset="0.5" stop-color="#172735"/>
+      <stop offset="1" stop-color="#0B151D"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <g id="background">
+    <circle cx="256" cy="256" r="208" fill="#071015" opacity="0.92"/>
+    <circle cx="256" cy="256" r="172" fill="none" stroke="#315064" stroke-width="4" opacity="0.38"/>
+    <circle cx="256" cy="256" r="126" fill="none" stroke="#28D7D3" stroke-width="3" opacity="0.18"/>
+  </g>
+
+  <g id="grid" opacity="0.72">
+    <path d="M84 256 H428" stroke="#223746" stroke-width="3" opacity="0.45"/>
+    <path d="M256 84 V428" stroke="#223746" stroke-width="3" opacity="0.32"/>
+    <g fill="#28D7D3" opacity="0.3">
+      <circle cx="128" cy="190" r="4"/>
+      <circle cx="154" cy="190" r="4"/>
+      <circle cx="180" cy="190" r="4"/>
+      <circle cx="332" cy="322" r="4"/>
+      <circle cx="358" cy="322" r="4"/>
+      <circle cx="384" cy="322" r="4"/>
+    </g>
+  </g>
+
+  <g id="security-illustration">
+    <g opacity="0.72">
+      <rect x="124" y="176" width="196" height="138" rx="18" fill="#101D27" stroke="#315064" stroke-width="5"/>
+      <path d="M162 220 H230" stroke="#28D7D3" stroke-width="12" stroke-linecap="round" opacity="0.78"/>
+      <path d="M162 262 H288" stroke="#315064" stroke-width="12" stroke-linecap="round" opacity="0.8"/>
+    </g>
+    <g id="shield" filter="url(#softGlow)">
+      <path d="M256 160 C316 126 366 118 426 156 L426 254 C426 352 358 416 256 464 C154 416 86 352 86 254 L86 156 C146 118 196 126 256 160 Z" fill="url(#shieldGradient)" stroke="#28D7D3" stroke-width="8" stroke-linejoin="round"/>
+      <path d="M256 186 L384 232 L384 260 C384 332 340 382 256 424 Z" fill="#071015" opacity="0.35"/>
+      <path d="M178 276 L232 330 L336 206" fill="none" stroke="#28D7D3" stroke-width="28" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <g id="audit-indicators" opacity="0.9">
+      <circle cx="392" cy="174" r="16" fill="#0D1821" stroke="#28D7D3" stroke-width="5"/>
+      <path d="M384 174 L390 181 L402 166" fill="none" stroke="#28D7D3" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+
+  <g id="content"/>
+</svg>

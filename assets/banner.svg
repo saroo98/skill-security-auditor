@@ -1,0 +1,167 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 800" role="img" aria-labelledby="title desc">
+  <title id="title">skill-security-auditor banner</title>
+  <desc id="desc">Dark Codex skill banner with code documents, an audit shield, and check indicators for supply-chain review.</desc>
+  <defs>
+    <linearGradient id="bgGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071015"/>
+      <stop offset="0.52" stop-color="#0A1218"/>
+      <stop offset="1" stop-color="#0D1821"/>
+    </linearGradient>
+    <radialGradient id="cyanGlow" cx="72%" cy="45%" r="42%">
+      <stop offset="0" stop-color="#28D7D3" stop-opacity="0.23"/>
+      <stop offset="0.48" stop-color="#28D7D3" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#28D7D3" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="panelGradient" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#142636"/>
+      <stop offset="1" stop-color="#101D27"/>
+    </linearGradient>
+    <linearGradient id="shieldGradient" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#203849"/>
+      <stop offset="0.48" stop-color="#172735"/>
+      <stop offset="1" stop-color="#0B151D"/>
+    </linearGradient>
+    <linearGradient id="accentLine" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#28D7D3" stop-opacity="0.95"/>
+      <stop offset="1" stop-color="#7ADFE7" stop-opacity="0.72"/>
+    </linearGradient>
+    <pattern id="gridPattern" width="96" height="96" patternUnits="userSpaceOnUse">
+      <path d="M 96 0 L 0 0 0 96" fill="none" stroke="#223746" stroke-width="1" opacity="0.22"/>
+      <path d="M 0 96 L 96 0" fill="none" stroke="#223746" stroke-width="1" opacity="0.13"/>
+    </pattern>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="5" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <style>
+      .font { font-family: Inter, ui-sans-serif, "Segoe UI", Arial, sans-serif; }
+      .title { fill: #F2F6F8; font-size: 78px; font-weight: 760; letter-spacing: -1px; }
+      .eyebrow { fill: #28D7D3; font-size: 27px; font-weight: 640; letter-spacing: 10px; }
+      .subtitle { fill: #9BAABA; font-size: 36px; font-weight: 420; }
+      .panel { fill: url(#panelGradient); stroke: #315064; stroke-width: 2.2; }
+      .muted-stroke { stroke: #223746; }
+      .accent-stroke { stroke: #28D7D3; }
+      .code-line { stroke: #315064; stroke-width: 7; stroke-linecap: round; opacity: 0.75; }
+      .code-line-accent { stroke: #28D7D3; stroke-width: 7; stroke-linecap: round; opacity: 0.78; }
+    </style>
+  </defs>
+
+  <g id="background">
+    <rect width="1600" height="800" fill="url(#bgGradient)"/>
+    <rect width="1600" height="800" fill="url(#cyanGlow)"/>
+  </g>
+
+  <g id="grid" opacity="0.9">
+    <rect x="0" y="0" width="1600" height="800" fill="url(#gridPattern)" opacity="0.36"/>
+    <circle cx="1180" cy="386" r="292" fill="none" stroke="#315064" stroke-width="1.4" opacity="0.26"/>
+    <circle cx="1180" cy="386" r="230" fill="none" stroke="#28D7D3" stroke-width="1" opacity="0.18"/>
+    <circle cx="1180" cy="386" r="164" fill="none" stroke="#315064" stroke-width="1" opacity="0.24"/>
+    <path d="M890 386 H1485" stroke="#315064" stroke-width="1" opacity="0.22"/>
+    <path d="M1180 94 V690" stroke="#315064" stroke-width="1" opacity="0.18"/>
+    <g fill="#28D7D3" opacity="0.3">
+      <circle cx="982" cy="232" r="2.2"/>
+      <circle cx="1008" cy="232" r="2.2"/>
+      <circle cx="1034" cy="232" r="2.2"/>
+      <circle cx="1060" cy="232" r="2.2"/>
+      <circle cx="982" cy="258" r="2.2"/>
+      <circle cx="1008" cy="258" r="2.2"/>
+      <circle cx="1034" cy="258" r="2.2"/>
+      <circle cx="1060" cy="258" r="2.2"/>
+      <circle cx="982" cy="284" r="2.2"/>
+      <circle cx="1008" cy="284" r="2.2"/>
+      <circle cx="1034" cy="284" r="2.2"/>
+      <circle cx="1060" cy="284" r="2.2"/>
+      <circle cx="1378" cy="236" r="2.2"/>
+      <circle cx="1404" cy="236" r="2.2"/>
+      <circle cx="1430" cy="236" r="2.2"/>
+      <circle cx="1456" cy="236" r="2.2"/>
+      <circle cx="1378" cy="262" r="2.2"/>
+      <circle cx="1404" cy="262" r="2.2"/>
+      <circle cx="1430" cy="262" r="2.2"/>
+      <circle cx="1456" cy="262" r="2.2"/>
+      <circle cx="1378" cy="288" r="2.2"/>
+      <circle cx="1404" cy="288" r="2.2"/>
+      <circle cx="1430" cy="288" r="2.2"/>
+      <circle cx="1456" cy="288" r="2.2"/>
+    </g>
+  </g>
+
+  <g id="content" class="font">
+    <rect x="80" y="234" width="7" height="34" rx="3.5" fill="#28D7D3" filter="url(#softGlow)"/>
+    <text x="110" y="255" class="eyebrow">CODEX SKILL</text>
+    <text x="80" y="395" class="title">skill-security-auditor</text>
+    <line x1="80" y1="465" x2="180" y2="465" stroke="url(#accentLine)" stroke-width="4" stroke-linecap="round"/>
+    <text x="80" y="535" class="subtitle">Audit agent skills for supply-chain risk.</text>
+  </g>
+
+  <g id="security-illustration">
+    <g opacity="0.92">
+      <rect x="1070" y="214" width="308" height="314" rx="14" class="panel"/>
+      <path d="M1318 214 L1378 274 L1378 214 Z" fill="#1B3142" stroke="#315064" stroke-width="2"/>
+      <path d="M1162 310 H1254" class="code-line-accent"/>
+      <path d="M1162 350 H1310" class="code-line"/>
+      <path d="M1162 390 H1284" class="code-line"/>
+      <path d="M1162 430 H1338" class="code-line"/>
+      <path d="M1162 470 H1222" class="code-line-accent"/>
+      <path d="M1290 340 l-28 28 28 28" fill="none" stroke="#315064" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.76"/>
+      <path d="M1320 340 l28 28 -28 28" fill="none" stroke="#315064" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" opacity="0.76"/>
+    </g>
+
+    <g opacity="0.78">
+      <rect x="1162" y="322" width="292" height="286" rx="13" class="panel"/>
+      <path d="M1224 396 H1360" class="code-line"/>
+      <path d="M1224 438 H1400" class="code-line"/>
+      <path d="M1224 480 H1348" class="code-line-accent"/>
+      <path d="M1224 522 H1384" class="code-line"/>
+    </g>
+
+    <g>
+      <rect x="930" y="290" width="324" height="312" rx="15" class="panel"/>
+      <rect x="930" y="290" width="324" height="54" rx="15" fill="#182B3A" opacity="0.95"/>
+      <circle cx="957" cy="317" r="6" fill="#7F9BB0" opacity="0.82"/>
+      <circle cx="982" cy="317" r="6" fill="#7F9BB0" opacity="0.62"/>
+      <circle cx="1007" cy="317" r="6" fill="#7F9BB0" opacity="0.46"/>
+      <path d="M980 392 H1014" class="code-line-accent"/>
+      <path d="M1028 392 H1160" class="code-line"/>
+      <path d="M980 432 H1078" class="code-line-accent"/>
+      <path d="M1092 432 H1196" class="code-line"/>
+      <path d="M980 472 H1042" class="code-line"/>
+      <path d="M1056 472 H1140" class="code-line-accent"/>
+      <path d="M980 512 H1130" class="code-line"/>
+      <path d="M980 552 H1035" class="code-line-accent"/>
+      <path d="M1048 552 H1110" class="code-line"/>
+      <g fill="#315064" opacity="0.82">
+        <rect x="955" y="388" width="6" height="11" rx="2"/>
+        <rect x="955" y="428" width="6" height="11" rx="2"/>
+        <rect x="955" y="468" width="6" height="11" rx="2"/>
+        <rect x="955" y="508" width="6" height="11" rx="2"/>
+        <rect x="955" y="548" width="6" height="11" rx="2"/>
+      </g>
+    </g>
+
+    <g id="shield" filter="url(#softGlow)">
+      <path d="M1180 384 C1230 354 1272 346 1322 378 L1322 468 C1322 548 1268 604 1180 646 C1092 604 1038 548 1038 468 L1038 378 C1088 346 1130 354 1180 384 Z" fill="url(#shieldGradient)" stroke="#28D7D3" stroke-width="3"/>
+      <path d="M1180 403 L1288 442 L1288 470 C1288 528 1250 572 1180 610 Z" fill="#071015" opacity="0.34"/>
+      <path d="M1122 502 L1162 542 L1248 440" fill="none" stroke="#28D7D3" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <g id="audit-indicators" filter="url(#softGlow)">
+      <path d="M1322 386 H1460" stroke="#28D7D3" stroke-width="2.5" opacity="0.62"/>
+      <path d="M1322 466 H1460" stroke="#28D7D3" stroke-width="2.5" opacity="0.62"/>
+      <path d="M1322 546 H1460" stroke="#28D7D3" stroke-width="2.5" opacity="0.62"/>
+      <circle cx="1460" cy="386" r="7" fill="#28D7D3"/>
+      <circle cx="1460" cy="466" r="7" fill="#28D7D3"/>
+      <circle cx="1460" cy="546" r="7" fill="#28D7D3"/>
+      <circle cx="1520" cy="386" r="24" fill="#0D1821" stroke="#28D7D3" stroke-width="3"/>
+      <path d="M1508 386 L1517 395 L1535 374" fill="none" stroke="#28D7D3" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M1520 444 L1544 490 H1496 Z" fill="#0D1821" stroke="#28D7D3" stroke-width="3" stroke-linejoin="round"/>
+      <path d="M1520 461 V475" stroke="#28D7D3" stroke-width="4" stroke-linecap="round"/>
+      <circle cx="1520" cy="482" r="2.8" fill="#28D7D3"/>
+      <circle cx="1520" cy="546" r="24" fill="#0D1821" stroke="#28D7D3" stroke-width="3"/>
+      <path d="M1508 546 L1517 555 L1535 534" fill="none" stroke="#28D7D3" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+  </g>
+</svg>

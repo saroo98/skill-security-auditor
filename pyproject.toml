@@ -1,0 +1,21 @@
+[project]
+name = "skill-security-auditor"
+version = "0.1.0"
+description = "Codex skill security scanner for auditing SKILL.md instructions, scripts, hooks, and repository files for suspicious behavior."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = []
+dependencies = []
+keywords = [
+  "codex-skill",
+  "agent-skill",
+  "ai-agent-security",
+  "supply-chain-security",
+  "static-analysis",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["skills/skill-security-auditor/tests"]
+python_files = ["test_*.py"]
+addopts = "-q"
