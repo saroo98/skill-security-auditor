@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements-dev.txt
+      - run: python -m pytest
+      - run: python skills/skill-security-auditor/scripts/scan_skill.py skills/skill-security-auditor/examples/benign-skill --json --fail-on high
+      - name: Suspicious fixture exits non-zero at high threshold
+        run: |
+          set +e
+          python skills/skill-security-auditor/scripts/scan_skill.py skills/skill-security-auditor/examples/suspicious-skill --json --fail-on high
+          code=$?
+          set -e
+          test "$code" -eq 1
