@@ -5,8 +5,8 @@ import sys
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SCRIPT = REPO_ROOT / "skills" / "skill-security-auditor" / "scripts" / "scan_skill.py"
-EXAMPLES = REPO_ROOT / "skills" / "skill-security-auditor" / "examples"
+SCRIPT = REPO_ROOT / "skills" / "securityauditor" / "scripts" / "scan_skill.py"
+EXAMPLES = REPO_ROOT / "skills" / "securityauditor" / "examples"
 
 
 def run_cli(*args: str) -> subprocess.CompletedProcess[str]:

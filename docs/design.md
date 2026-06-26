@@ -23,4 +23,4 @@ The scanner intentionally favors conservative review signals over silent misses.
 
 ## Plugin Packaging
 
-Plugin packaging is deferred for v1. The repository distributes one standalone skill under `skills/skill-security-auditor`, which can be copied into a Codex skills directory. A plugin wrapper can be added later if distribution needs include multiple skills, tools, hooks, or app metadata.
+Plugin packaging is deferred for v1. The repository distributes one standalone skill under `skills/securityauditor`, which can be copied into a Codex skills directory and invoked as `$securityauditor`. A plugin wrapper can be added later if distribution needs include multiple skills, tools, hooks, or app metadata.

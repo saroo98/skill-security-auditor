@@ -2,4 +2,4 @@ interface:
   display_name: "Skill Security Auditor"
   short_description: "Audit agent skill supply-chain risk"
   brand_color: "#28D7D3"
-  default_prompt: "Use $skill-security-auditor to audit this agent skill directory for suspicious instructions and scripts."
+  default_prompt: "Use $securityauditor to audit this agent skill directory for suspicious instructions and scripts."

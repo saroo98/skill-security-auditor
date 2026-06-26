@@ -1,11 +1,13 @@
 ---
-name: skill-security-auditor
+name: securityauditor
 description: Static security audit workflow for Codex skills, agent skills, SKILL.md files, bundled scripts, hooks, shell snippets, suspicious file operations, prompt-injection instructions, credential access, permission expansion, and supply-chain risk. Use when reviewing third-party or newly authored skills before installation, publication, CI gating, or public release.
 ---
 
 # Skill Security Auditor
 
 Use this skill to audit third-party or newly authored Codex and agent skill directories before installing, sharing, publishing, or trusting them.
+
+Invoke the installed skill as `$securityauditor`. In chat surfaces that expose slash skill invocation, use `/securityauditor`.
 
 Do not use this skill as proof that a skill is safe. It is a static review aid that detects common suspicious patterns and highlights areas that need human review.
 

@@ -16,6 +16,6 @@ keywords = [
 ]
 
 [tool.pytest.ini_options]
-testpaths = ["skills/skill-security-auditor/tests"]
+testpaths = ["skills/securityauditor/tests"]
 python_files = ["test_*.py"]
 addopts = "-q"

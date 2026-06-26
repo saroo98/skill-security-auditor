@@ -13,7 +13,7 @@ The scanner uses the Python standard library at runtime. Keep new runtime depend
 
 ## Adding Detection Rules
 
-- Add the rule to the relevant script under `skills/skill-security-auditor/scripts`.
+- Add the rule to the relevant script under `skills/securityauditor/scripts`.
 - Give the rule a stable `rule_id`.
 - Use an existing severity and category.
 - Include a concise message and recommendation.

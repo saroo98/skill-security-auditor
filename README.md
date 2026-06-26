@@ -6,6 +6,8 @@ Codex skill security scanner for auditing `SKILL.md` instructions, scripts, hook
 
 `skill-security-auditor` helps maintainers review third-party Codex skills and agent skills as supply-chain artifacts. It statically inspects agent-facing instructions and executable files for common risky patterns such as prompt injection, credential access, hidden behavior, dependency-install hooks, destructive file operations, and shell download-and-execute snippets.
 
+Installed skill command: `$securityauditor`. In chat surfaces that expose slash skill invocation, use `/securityauditor`.
+
 ## What Is A Codex Skill Security Audit?
 
 A Codex skill security audit is a defensive review of the files that can shape an agent workflow. Skills can include instructions, references, scripts, examples, and optional UI metadata. That means a skill can influence both what an agent believes it should do and what local helper code may run.
@@ -16,13 +18,13 @@ This scanner checks common risk signals before a skill is installed, shared, pub
 
 ```powershell
 python -m pip install -r requirements-dev.txt
-python skills/skill-security-auditor/scripts/scan_skill.py skills/skill-security-auditor/examples/benign-skill
-python skills/skill-security-auditor/scripts/scan_skill.py skills/skill-security-auditor/examples/suspicious-skill --json --fail-on high
+python skills/securityauditor/scripts/scan_skill.py skills/securityauditor/examples/benign-skill
+python skills/securityauditor/scripts/scan_skill.py skills/securityauditor/examples/suspicious-skill --json --fail-on high
 ```
 
 ## Installation
 
-Copy `skills/skill-security-auditor` into a Codex skills directory, or keep the repository checked out and invoke the scanner script directly.
+Copy `skills/securityauditor` into a Codex skills directory, then mention `$securityauditor` in chat. If the host chat UI supports slash skill invocation, `/securityauditor` should resolve to the same installed skill. You can also keep the repository checked out and invoke the scanner script directly.
 
 For development:
 
@@ -36,11 +38,11 @@ The scanner itself uses only the Python standard library.
 ## CLI Usage
 
 ```powershell
-python skills/skill-security-auditor/scripts/scan_skill.py <path>
-python skills/skill-security-auditor/scripts/scan_skill.py <path> --json
-python skills/skill-security-auditor/scripts/scan_skill.py <path> --fail-on high
-python skills/skill-security-auditor/scripts/scan_skill.py <path> --max-file-size 1048576
-python skills/skill-security-auditor/scripts/scan_skill.py <path> --include-deps
+python skills/securityauditor/scripts/scan_skill.py <path>
+python skills/securityauditor/scripts/scan_skill.py <path> --json
+python skills/securityauditor/scripts/scan_skill.py <path> --fail-on high
+python skills/securityauditor/scripts/scan_skill.py <path> --max-file-size 1048576
+python skills/securityauditor/scripts/scan_skill.py <path> --include-deps
 ```
 
 Exit codes:
@@ -115,7 +117,7 @@ JSON output is deterministic and suitable for CI:
 ## CI Usage
 
 ```yaml
-- run: python skills/skill-security-auditor/scripts/scan_skill.py ./some-skill --json --fail-on high
+- run: python skills/securityauditor/scripts/scan_skill.py ./some-skill --json --fail-on high
 ```
 
 Use `--fail-on medium` for stricter review gates and `--include-deps` only when dependency directories are intentionally in scope.
