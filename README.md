@@ -14,14 +14,14 @@ Quarantine → analyze → verdict → install the exact files you checked → g
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg?logo=python&logoColor=white)](pyproject.toml)
 [![Dependencies: none](https://img.shields.io/badge/dependencies-none-brightgreen.svg)](pyproject.toml)
 [![Platforms](https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-lightgrey.svg)](.github/workflows/ci.yml)
-[![SARIF](https://img.shields.io/badge/output-SARIF-orange.svg)](#-ci-and-pre-commit)
+[![SARIF](https://img.shields.io/badge/output-SARIF-orange.svg)](#ci-and-pre-commit)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
 
 [Quick start](#-quick-start) •
 [Verdicts](#-what-a-verdict-looks-like) •
 [What it checks](#-what-it-checks) •
-[Install and pin](#-install-and-pin) •
-[CI](#-ci-and-pre-commit) •
+[Install and pin](#install-and-pin) •
+[CI](#ci-and-pre-commit) •
 [Benchmark](#-benchmark) •
 [Limits](#%EF%B8%8F-limits)
 
@@ -29,33 +29,33 @@ Quarantine → analyze → verdict → install the exact files you checked → g
 
 ---
 
-## 📖 Table of contents
+## Table of contents
 
-- [Why this exists](#-why-this-exists)
-- [Highlights](#-highlights)
+- [Why this exists](#why-this-exists)
+- [Highlights](#highlights)
 - [Quick start](#-quick-start)
 - [What a verdict looks like](#-what-a-verdict-looks-like)
 - [What it checks](#-what-it-checks)
-- [Install and pin](#-install-and-pin)
-- [Watching for changes](#-watching-for-changes)
-- [CI and pre-commit](#-ci-and-pre-commit)
-- [Optional: SkillSpector](#-optional-skillspector)
+- [Install and pin](#install-and-pin)
+- [Watching for changes](#watching-for-changes)
+- [CI and pre-commit](#ci-and-pre-commit)
+- [Optional: SkillSpector](#optional-skillspector)
 - [Benchmark](#-benchmark)
 - [Limits](#%EF%B8%8F-limits)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Contributing](#contributing)
+- [License](#license)
 
 ---
 
-## 💡 Why this exists
+## Why this exists
 
 Agent skills are folders of instructions and scripts that an AI coding agent loads and follows. Installing one gives it the same reach as your agent: your files, your shell, your environment variables and your credentials. Some parts of a skill, such as hooks, MCP servers and pre-approved tools, can run **without any permission prompt**.
 
 `skill-security-auditor` reads a skill **without ever running it** and tells you, in a few lines, what it can do, what it would run on its own, and whether anything looks malicious. It is built for the moment right before you install, and it finishes in seconds.
 
-## ✨ Highlights
+## Highlights
 
-| | |
+| Feature | What it means |
 | --- | --- |
 | 🔒 **Quarantined, never executed** | The skill is fetched into an isolated folder; symlinks are skipped and archives are extracted safely. |
 | ⚡ **Fast and cheap** | Static analysis in well under a second for typical skills, with a hard 60-second budget. One small, capped model review at most. |
@@ -127,7 +127,7 @@ not analyzed: assets/guide.pdf
 | `not analyzed:` | Files that could not be checked. Never silently skipped. |
 
 > [!NOTE]
-> 🤖 **Optional model review.** Unless the static checks already blocked the skill, the output also contains a capped, sanitized review packet. Your agent's model reads it against a fixed rubric and may **raise** the verdict, never lower it. `--static` turns it off.
+> **Optional model review.** Unless the static checks already blocked the skill, the output also contains a capped, sanitized review packet. Your agent's model reads it against a fixed rubric and may **raise** the verdict, never lower it. `--static` turns it off.
 
 > [!IMPORTANT]
 > A PASS means nothing was found. It is not proof that a skill is safe.
@@ -136,24 +136,24 @@ not analyzed: assets/guide.pdf
 
 ## 🔍 What it checks
 
-| | Area | What is checked |
-| --- | --- | --- |
-| 🏃 | **Runs without asking** | Hooks, monitors, MCP server commands, inline commands in `SKILL.md`, `allowed-tools` pre-approvals, npm lifecycle scripts. Each command is analyzed and marked as checked or not. |
-| 📥 | **Download and run** | Fetches that are piped, substituted, or saved and then executed, in shell, PowerShell, Python and JavaScript. |
-| 🔑 | **Secrets leaving the machine** | Credential files or the whole environment read and sent out. A secret sent to its own vendor is fine; to a raw IP, a webhook service or another vendor it is not. |
-| 👻 | **Hidden instructions** | Unicode tag characters, zero-width runs, bidi overrides, HTML comments, image alt text, link titles, instructions split across lines, text addressed to a reviewer. |
-| 🧾 | **Prompt injection** | Instructions to ignore rules, hide actions from the user, skip confirmation or bypass permissions. |
-| 📄 | **Odd files** | UTF-16 files and extensionless scripts are decoded and checked; anything that cannot be checked is listed. |
-| 📦 | **Installs something else** | Instructions to download and run an extra component as a "required" step. |
-| 🎭 | **Lookalike source** | Repository names that imitate a well-known skill repository under another owner. |
-| 🔀 | **Says one thing, does another** | Capabilities compared with what `SKILL.md` says the skill does. |
-| 🌐 | **Meaning** | Paraphrased and non-English instructions, by the optional model review. |
+| Area | What is checked |
+| --- | --- |
+| **Runs without asking** | Hooks, monitors, MCP server commands, inline commands in `SKILL.md`, `allowed-tools` pre-approvals, npm lifecycle scripts. Each command is analyzed and marked as checked or not. |
+| **Download and run** | Fetches that are piped, substituted, or saved and then executed, in shell, PowerShell, Python and JavaScript. |
+| **Secrets leaving the machine** | Credential files or the whole environment read and sent out. A secret sent to its own vendor is fine; to a raw IP, a webhook service or another vendor it is not. |
+| **Hidden instructions** | Unicode tag characters, zero-width runs, bidi overrides, HTML comments, image alt text, link titles, instructions split across lines, text addressed to a reviewer. |
+| **Prompt injection** | Instructions to ignore rules, hide actions from the user, skip confirmation or bypass permissions. |
+| **Odd files** | UTF-16 files and extensionless scripts are decoded and checked; anything that cannot be checked is listed. |
+| **Installs something else** | Instructions to download and run an extra component as a "required" step. |
+| **Lookalike source** | Repository names that imitate a well-known skill repository under another owner. |
+| **Says one thing, does another** | Capabilities compared with what `SKILL.md` says the skill does. |
+| **Meaning** | Paraphrased and non-English instructions, by the optional model review. |
 
-📚 Every one of the 40 checks has a page with a flagged and a not-flagged example in [`docs/checks`](docs/checks). Star, fork and download counts are never used. Architecture: [`docs/how-it-works.md`](docs/how-it-works.md).
+Every one of the 40 checks has a page with a flagged and a not-flagged example in [`docs/checks`](docs/checks). Star, fork and download counts are never used. Architecture: [`docs/how-it-works.md`](docs/how-it-works.md).
 
 ---
 
-## 📌 Install and pin
+## Install and pin
 
 After a check, install the **exact files that were checked**:
 
@@ -161,14 +161,14 @@ After a check, install the **exact files that were checked**:
 python skills/securityauditor/scripts/scan_skill.py install <check-id> --to <your skills folder>
 ```
 
-- ⛔ Refuses a BLOCK verdict.
-- 🔁 Refuses a quarantine that changed since the check.
-- 📥 Copies files without downloading anything again.
-- 🧷 Records every file hash in `skill.lock.json`.
+- Refuses a BLOCK verdict.
+- Refuses a quarantine that changed since the check.
+- Copies files without downloading anything again.
+- Records every file hash in `skill.lock.json`.
 
 Already have a skill folder? Pin it with `pin <folder>`.
 
-## 👀 Watching for changes
+## Watching for changes
 
 ```powershell
 python skills/securityauditor/scripts/scan_skill.py verify
@@ -182,7 +182,7 @@ python skills/securityauditor/scripts/scan_skill.py verify
 
 ---
 
-## ⚙️ CI and pre-commit
+## CI and pre-commit
 
 **GitHub Action**: scans, writes SARIF and uploads it to code scanning.
 
@@ -202,9 +202,9 @@ python skills/securityauditor/scripts/scan_skill.py scan <path> --format text|js
 ```
 
 > [!TIP]
-> 🔕 **Suppressions stay with you.** Findings can be suppressed only by the person running the scan: `--config` with `[[suppress]]` entries that each carry a reason, or `--baseline` with a reason for every fingerprint. A suppression file or ignore comment *inside* a scanned skill is itself reported and never honored.
+> **Suppressions stay with you.** Findings can be suppressed only by the person running the scan: `--config` with `[[suppress]]` entries that each carry a reason, or `--baseline` with a reason for every fingerprint. A suppression file or ignore comment *inside* a scanned skill is itself reported and never honored.
 
-## 🧩 Optional: SkillSpector
+## Optional: SkillSpector
 
 If [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) is installed (on `PATH`, or `SKILLSPECTOR_BIN`), `check` also runs it with its model stage off and takes the stricter of the two verdicts. The output says when it was used and which tool raised the verdict. SkillSpector looks up dependency names in a vulnerability database during a scan; `--no-external` turns it off.
 
@@ -214,7 +214,7 @@ If [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) is installed (o
 
 [`bench/`](bench) holds an inert corpus of skill attacks and harmless look-alikes, stored as data and written out as real folders only in a temporary directory. Cases that antivirus software flags are scored in memory unless `--include-av-sensitive` is given. `python -m bench.run` scores any scanner that has an adapter in [`bench/adapters/`](bench/adapters).
 
-### 🧪 Attack corpus
+### Attack corpus
 
 Results on 2026-11-27, model stages off for every scanner. Full table: [`bench/results/RESULTS.md`](bench/results/RESULTS.md).
 
@@ -227,7 +227,7 @@ Results on 2026-11-27, model stages off for every scanner. Full table: [`bench/r
 > [!NOTE]
 > Most corpus cases were written by this project's authors while building its checks, so its own score on them is optimistic. The real-skill results below are the fairer measure.
 
-### 🌍 Real-world skills
+### Real-world skills
 
 **1,787 skills** from eleven public repositories, each pinned to a commit (Anthropic, OpenAI, Microsoft, GitHub, NVIDIA, Hugging Face, Vercel, Trail of Bits, obra/superpowers, K-Dense; listed in [`bench/sources.toml`](bench/sources.toml)):
 
@@ -252,17 +252,17 @@ python -m bench.run --real <folder>
 
 ## ⚠️ Limits
 
-- 🧪 Static checks plus one bounded model review. The skill is never run, so behavior that only appears at run time is not seen.
-- 🌐 Paraphrased and non-English instructions are left to the model review. A malicious package recognizable only by its name, and content fetched after review, are out of static scope.
-- 📝 Instructions phrased as third-person description ("this skill tells an agent to ...") are treated as documentation by the static checks.
-- 🔐 Private repositories are not supported; no tokens are read or sent.
-- ✅ A PASS means nothing was found, not that a skill is safe.
+- Static checks plus one bounded model review. The skill is never run, so behavior that only appears at run time is not seen.
+- Paraphrased and non-English instructions are left to the model review. A malicious package recognizable only by its name, and content fetched after review, are out of static scope.
+- Instructions phrased as third-person description ("this skill tells an agent to ...") are treated as documentation by the static checks.
+- Private repositories are not supported; no tokens are read or sent.
+- A PASS means nothing was found, not that a skill is safe.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add a check, a benchmark case or a scanner adapter. Found a vulnerability? See [SECURITY.md](SECURITY.md).
 
-## 📄 License
+## License
 
 [MIT](LICENSE)
 
@@ -272,6 +272,6 @@ Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to add
 
 **Keywords:** AI agent security · Claude Code skills · Codex skills · SKILL.md scanner · prompt injection detection · supply chain security · MCP server security · static analysis · malicious code detection · SARIF
 
-⭐ If this tool helped you, consider starring the repository.
+If this tool helped you, consider starring the repository.
 
 </div>
