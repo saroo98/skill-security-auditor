@@ -10,7 +10,7 @@
 - Pin skills by installation path so matching names stay independent. Existing lockfiles remain readable and migrate on the next pin.
 - Pass GitHub Action inputs through quoted environment variables and treat deletion of core system folders as critical.
 - Fingerprint full evidence before clipping report previews. Baselines from earlier versions may need new fingerprints for long evidence.
-- Document the current Codex user skill directory.
+- Document the Codex user skill directory and invocation.
 - Declare the MIT license using SPDX package metadata.
 - Update GitHub workflows and the SARIF uploader to Node.js 24 action versions.
 

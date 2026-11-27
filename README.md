@@ -77,11 +77,19 @@ Agent skills are folders of instructions and scripts that an AI coding agent loa
 | Claude Code | `~/.claude/skills/securityauditor` |
 | Codex | `~/.agents/skills/securityauditor` |
 
-**2. Check a skill before installing it:**
+**2. Check a skill before installing it.** Use the slash shortcut in Claude Code.
 
 ```text
 /securityauditor https://github.com/owner/repo/tree/main/skills/some-skill
 ```
+
+In Codex, type `$` in the composer, select `securityauditor`, and add the skill address. [Codex skill mentions](https://learn.chatgpt.com/docs/skills-and-plugins#use-skills-for-repeatable-work)
+
+```text
+$securityauditor https://github.com/owner/repo/tree/main/skills/some-skill
+```
+
+If the skill does not appear after you copy the folder, restart Codex.
 
 **Or run it from a terminal**, no agent needed:
 
