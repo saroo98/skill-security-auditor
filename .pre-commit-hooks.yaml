@@ -1,0 +1,7 @@
+- id: skillaudit
+  name: skill install guard
+  description: Scan agent skills for risky behavior before they are committed.
+  entry: skillaudit scan
+  args: ["."]
+  language: python
+  pass_filenames: false

@@ -1,0 +1,14 @@
+id = "b05"
+class = "benign"
+technique = "CI workflow uses the GitHub token secret"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = []
+expect = "PASS"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: b05\ndescription: Formats local notes.\n---\n\n# Notes helper\n\n"
+
+[[files]]
+path = ".github/workflows/ci.yml"
+content = "env:\n  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}\n"

@@ -1,0 +1,14 @@
+id = "sb02"
+class = "benign"
+technique = "Cleans build output and caches in the project"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "scripts/clean.sh"
+content = "rm -rf ./dist ./build\nfind . -name '__pycache__' -type d -exec rm -r {} +\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: sb02\ndescription: Formats local notes.\n---\n\n"

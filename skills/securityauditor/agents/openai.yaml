@@ -1,5 +1,5 @@
 interface:
-  display_name: "Skill Security Auditor"
-  short_description: "Audit agent skill supply-chain risk"
+  display_name: "Skill Install Guard"
+  short_description: "Check a skill before installing it"
   brand_color: "#28D7D3"
-  default_prompt: "Use $securityauditor to audit this agent skill directory for suspicious instructions and scripts."
+  default_prompt: "Use $securityauditor to check this skill before installing: <address>"

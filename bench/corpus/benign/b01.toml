@@ -1,0 +1,14 @@
+id = "b01"
+class = "benign"
+technique = "Reads one named, non-secret environment variable"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = []
+expect = "PASS"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: b01\ndescription: Formats local notes.\n---\n\n# Notes helper\n\n"
+
+[[files]]
+path = "scripts/run.py"
+content = "import os\nregion = os.environ.get(\"AWS_REGION\", \"us-east-1\")\n"

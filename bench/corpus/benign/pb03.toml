@@ -1,0 +1,14 @@
+id = "pb03"
+class = "benign"
+technique = "Removes a temporary working directory"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "scripts/work.py"
+content = "import shutil, tempfile\nd = tempfile.mkdtemp()\nshutil.rmtree(d)\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: pb03\ndescription: Formats local notes.\n---\n\n"

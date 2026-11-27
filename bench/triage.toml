@@ -1,0 +1,387 @@
+# Hand triage of real skills that got BLOCK (scan of 2026-11-27, ruleset 7).
+# justified: a careful reviewer would want to stop and look before installing. false-alarm: they would not.
+# A block with no entry, or labeled false-alarm, counts as unjustified.
+
+[[entry]]
+skill = "anthropics__claude-plugins-official/plugins/champion-kit/skills/climb"
+check_id = "permission-bypass"
+label = "false-alarm"
+reason = "a list of tool names, not an instruction"
+
+[[entry]]
+skill = "anthropics__claude-plugins-official/plugins/plugin-dev/skills/plugin-settings"
+check_id = "undeclared-secret-read"
+label = "false-alarm"
+reason = "a string comparison in an example hook"
+
+[[entry]]
+skill = "anthropics__claude-plugins-official/plugins/receipts/skills/receipts"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "a warning about injection, quoting it"
+
+[[entry]]
+skill = "anthropics__skills/skills/claude-api"
+check_id = "reviewer-directed"
+label = "false-alarm"
+reason = "ordinary text; no request for a verdict"
+
+[[entry]]
+skill = "anthropics__skills/skills/discernment-nudge"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "advice about the user's earlier instructions"
+
+[[entry]]
+skill = "anthropics__skills/skills/web-artifacts-builder"
+check_id = "binary-referenced"
+label = "justified"
+reason = "unpacks a bundled archive the scanner cannot read"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/arize-instrumentation"
+check_id = "instruction-external"
+label = "justified"
+reason = "tells the agent to fetch and follow instructions from a remote page"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/aspire"
+check_id = "remote-exec"
+label = "justified"
+reason = "installs by piping a downloaded script into bash"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/azure-container-registry-cli"
+check_id = "remote-exec"
+label = "justified"
+reason = "installs by piping a downloaded script into bash"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/azure-devops-cli"
+check_id = "remote-exec"
+label = "justified"
+reason = "installs by piping a downloaded script into bash"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/cli-mastery"
+check_id = "permission-bypass"
+label = "false-alarm"
+reason = "a quiz question about the flag"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/copilot-sdk"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "a table of options"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/gdpr-compliant"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "a list of things not to do"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/macos-golden-gate-design"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "design tokens, not secrets"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/roundup"
+check_id = "instruction-conceal"
+label = "justified"
+reason = "tells the agent to keep its tool calls from the user"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/sandbox-npm-install"
+check_id = "undeclared-secret-read"
+label = "justified"
+reason = "copies the user's .npmrc, which holds registry tokens, without saying so"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/setup-my-iq"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "a defensive template"
+
+[[entry]]
+skill = "github__awesome-copilot/skills/webmcpify"
+check_id = "dynamic-exec"
+label = "false-alarm"
+reason = "eval inside a jsdom test harness"
+
+[[entry]]
+skill = "huggingface__skills/skills/huggingface-zerogpu"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "advice about GPU code placement"
+
+[[entry]]
+skill = "K-Dense-AI__scientific-agent-skills/skills/arboreto"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "describes a library pitfall"
+
+[[entry]]
+skill = "K-Dense-AI__scientific-agent-skills/skills/omero-integration"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "describes session authentication"
+
+[[entry]]
+skill = "K-Dense-AI__scientific-agent-skills/skills/pi-agent"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "describes validation of proposals"
+
+[[entry]]
+skill = "K-Dense-AI__scientific-agent-skills/skills/scientific-brainstorming"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "describes a research pitfall"
+
+[[entry]]
+skill = "microsoft__skills/.github/plugins/azure-skills/skills/azure-upgrade"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "describes configuration handling"
+
+[[entry]]
+skill = "microsoft__skills/.github/plugins/azure-skills/skills/azure-validate"
+check_id = "undeclared-secret-read"
+label = "false-alarm"
+reason = "text about template variables"
+
+[[entry]]
+skill = "microsoft__skills/.github/plugins/azure-skills/skills/microsoft-foundry"
+check_id = "permission-bypass"
+label = "false-alarm"
+reason = "says not to skip steps in --yolo mode"
+
+[[entry]]
+skill = "microsoft__skills/.github/plugins/azure-skills/skills/microsoft-foundry/finetuning"
+check_id = "dynamic-exec"
+label = "justified"
+reason = "executes a grader file as Python code"
+
+[[entry]]
+skill = "microsoft__skills/.github/plugins/foundry-iq-skills/skills/foundry-iq"
+check_id = "reviewer-directed"
+label = "false-alarm"
+reason = "describes a stopping rule"
+
+[[entry]]
+skill = "microsoft__skills/.github/plugins/microsoft-365-agents-toolkit/skills/declarative-agent-developer"
+check_id = "instruction-override"
+label = "justified"
+reason = "claims to override all other instructions"
+
+[[entry]]
+skill = "microsoft__skills/.github/plugins/microsoft-365-agents-toolkit/skills/teams-app-developer"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "advice to keep credentials separate"
+
+[[entry]]
+skill = "NVIDIA__skills/plugins/nvidia-nvflare/skills/nvflare-convert-huggingface"
+check_id = "instruction-conceal"
+label = "justified"
+reason = "intentional prompt-injection test fixture telling the agent to hide steps"
+
+[[entry]]
+skill = "NVIDIA__skills/plugins/nvidia-tao-toolkit/skills/tao-finetune-cosmos-reason"
+check_id = "env-to-network"
+label = "false-alarm"
+reason = "sends the Hugging Face token to Hugging Face"
+
+[[entry]]
+skill = "NVIDIA__skills/plugins/nvidia-tao-toolkit/skills/tao-run-on-brev"
+check_id = "remote-exec"
+label = "justified"
+reason = "downloads an installer script and runs it"
+
+[[entry]]
+skill = "NVIDIA__skills/plugins/nvidia-tao-toolkit/skills/tao-train-pointpillars"
+check_id = "reviewer-directed"
+label = "false-alarm"
+reason = "ordinary configuration text"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/bioir-bench-perf-oss"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "advice about an explicit setting"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/cdf-orchestration-write-dag"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "says never to log file contents"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/compileiq-booster-pack"
+check_id = "binary-referenced"
+label = "false-alarm"
+reason = "evaluation fixtures referenced by evals"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/cudf-query-engine-builder"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "says not to report blocked steps as passed"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/deepstream-dev"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "troubleshooting note"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/deepstream-import-vision-model"
+check_id = "obfuscation"
+label = "false-alarm"
+reason = "a shell argument, not a command name"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/earth2studio-create-datasource"
+check_id = "persist-runtime"
+label = "justified"
+reason = "appends to the user's shell profile"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/earth2studio-create-diagnostic"
+check_id = "persist-runtime"
+label = "justified"
+reason = "appends to the user's shell profile"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/earth2studio-create-prognostic"
+check_id = "persist-runtime"
+label = "justified"
+reason = "appends to the user's shell profile"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/fastgen-configure"
+check_id = "instruction-external"
+label = "false-alarm"
+reason = "points to documentation"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/jetson-headless-mode"
+check_id = "persist-runtime"
+label = "justified"
+reason = "enables a system service"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/nemoclaw-user-guide"
+check_id = "agent-config-change"
+label = "justified"
+reason = "adds a remote MCP server to the agent"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/nemotron-asr-finetune"
+check_id = "agent-config-change"
+label = "justified"
+reason = "links a sub-skill into the agent's skills folder"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/nemotron-voice-agent-builder"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "describes a model limitation"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/nv-reason-cxr"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "keeps an intermediate prompt out of the answer"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/nv-segment-ctmr"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "keeps maintainer commands out of user answers"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/nvflare-convert-huggingface"
+check_id = "instruction-conceal"
+label = "justified"
+reason = "intentional prompt-injection test fixture telling the agent to hide steps"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/rag-blueprint"
+check_id = "instruction-external"
+label = "false-alarm"
+reason = "tells the user where to get an API key"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/tao-finetune-cosmos-reason"
+check_id = "env-to-network"
+label = "false-alarm"
+reason = "sends the Hugging Face token to Hugging Face"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/tao-run-on-brev"
+check_id = "remote-exec"
+label = "justified"
+reason = "downloads an installer script and runs it"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/tao-train-pointpillars"
+check_id = "reviewer-directed"
+label = "false-alarm"
+reason = "ordinary configuration text"
+
+[[entry]]
+skill = "NVIDIA__skills/skills/vss-generate-video-report"
+check_id = "obfuscation"
+label = "false-alarm"
+reason = "a URL assignment, not a command"
+
+[[entry]]
+skill = "openai__skills/skills/.curated/migrate-to-codex"
+check_id = "permission-bypass"
+label = "false-alarm"
+reason = "a table describing permission modes"
+
+[[entry]]
+skill = "openai__skills/skills/.curated/render-deploy"
+check_id = "agent-config-change"
+label = "justified"
+reason = "adds a remote MCP server with a bearer token to the agent"
+
+[[entry]]
+skill = "openai__skills/skills/.system/imagegen"
+check_id = "permission-bypass"
+label = "false-alarm"
+reason = "documents what the flag does"
+
+[[entry]]
+skill = "trailofbits__skills/plugins/agentic-actions-auditor/skills/agentic-actions-auditor"
+check_id = "permission-bypass"
+label = "false-alarm"
+reason = "describes sandbox misconfiguration"
+
+[[entry]]
+skill = "trailofbits__skills/plugins/semgrep-rule-creator/skills/semgrep-rule-creator"
+check_id = "dynamic-exec"
+label = "false-alarm"
+reason = "an example of vulnerable code in a rule-writing guide"
+
+[[entry]]
+skill = "trailofbits__skills/plugins/static-analysis/skills/codeql"
+check_id = "dynamic-exec"
+label = "justified"
+reason = "compiles and executes code blocks taken from documents"
+
+[[entry]]
+skill = "trailofbits__skills/plugins/static-analysis/skills/sarif-parsing"
+check_id = "obfuscation"
+label = "false-alarm"
+reason = "a jq program"
+
+[[entry]]
+skill = "trailofbits__skills/plugins/testing-handbook-skills/skills/libafl"
+check_id = "remote-exec"
+label = "justified"
+reason = "downloads a script, makes it executable and runs it"

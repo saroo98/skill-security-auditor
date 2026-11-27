@@ -1,0 +1,10 @@
+id = "mb02"
+class = "benign"
+technique = "Lint comments and setup notes"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: mb02\ndescription: Formats local notes.\n---\n\n<!-- markdownlint-disable MD013 -->\n# Notes\n\nInstall with `pip install rich`. First install pandoc from https://pandoc.example before exporting.\n"

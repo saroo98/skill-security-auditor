@@ -1,26 +1,9 @@
-# Repository Metadata
+# Repository metadata
 
-Suggested GitHub repository description:
+Description:
 
-Codex skill security scanner for auditing SKILL.md instructions, scripts, hooks, and repository files for suspicious behavior.
+Check agent skills before installing them: quarantine, static checks for what runs without asking, a PASS/REVIEW/BLOCK verdict, and a pinned install.
 
-Suggested topics:
+Topics: `agent-skill`, `claude-code`, `codex-skill`, `ai-agent-security`, `supply-chain-security`, `prompt-injection`, `static-analysis`, `security-scanner`, `python`.
 
-- `codex-skill`
-- `agent-skill`
-- `ai-agent-security`
-- `skill-security`
-- `supply-chain-security`
-- `prompt-injection`
-- `security-scanner`
-- `developer-tools`
-- `python`
-- `static-analysis`
-
-Suggested social preview text:
-
-Static security review for Codex and agent skills.
-
-Example package or release tagline:
-
-Audit agent skill instructions and scripts before installation or publication.
+Social preview text: Check a skill before you install it.

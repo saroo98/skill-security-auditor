@@ -1,0 +1,14 @@
+id = "wb01"
+class = "benign"
+technique = "PowerShell zips the project output folder"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "scripts/pack.ps1"
+content = "Compress-Archive -Path .\\\\out\\\\* -DestinationPath notes.zip -Force\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: wb01\ndescription: Formats local notes.\n---\n\n"

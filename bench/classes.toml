@@ -1,0 +1,71 @@
+# Attack classes in the corpus. static_scope says whether static analysis is expected to catch the class.
+# Classes out of static scope are always run and always reported, but are excluded from the static recall figure.
+# Changing a flag needs a changelog entry.
+
+[download-run]
+static_scope = true
+reason = "Download-and-execute is visible in the command text."
+
+[secret-exfil]
+static_scope = true
+reason = "A credential read flowing to a network call is visible in code."
+
+[hidden-instruction]
+static_scope = true
+reason = "Invisible characters and HTML comments can be found and decoded."
+
+[instruction-override]
+static_scope = true
+reason = "Common override phrasing can be matched sentence by sentence."
+
+[unprompted-exec]
+static_scope = true
+reason = "Hooks, MCP commands and lifecycle scripts are declared in config files."
+
+[odd-file]
+static_scope = true
+reason = "Encodings and extensionless scripts can be decoded and classified."
+
+[dynamic-exec]
+static_scope = true
+reason = "Execution of decoded or generated code is visible in code."
+
+[reverse-shell]
+static_scope = true
+reason = "Reverse shell forms are distinctive."
+
+[install-extra]
+static_scope = true
+reason = "Instructions to install a further required component can be matched."
+
+[lookalike]
+static_scope = true
+reason = "Source names can be compared with well-known repositories."
+
+[mismatch]
+static_scope = true
+reason = "Capabilities can be compared with what the skill declares."
+
+[reviewer-directed]
+static_scope = true
+reason = "Text addressed to a scanner or reviewer can be matched."
+
+[weak-signal]
+static_scope = false
+reason = "Risky but not malicious on its own; the right outcome is REVIEW, not BLOCK."
+
+[paraphrased-injection]
+static_scope = false
+reason = "Needs reading for meaning; covered by the model review."
+
+[non-english-injection]
+static_scope = false
+reason = "Needs reading for meaning in other languages; covered by the model review."
+
+[dependency-by-name]
+static_scope = false
+reason = "A malicious package is recognizable only with a package database."
+
+[late-hostile-content]
+static_scope = false
+reason = "Fetched content can change after review."

@@ -1,0 +1,14 @@
+id = "sb03"
+class = "benign"
+technique = "Writes output to a temporary file"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "scripts/render.sh"
+content = "pandoc notes.md -o /tmp/notes.html\necho \"wrote /tmp/notes.html\"\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: sb03\ndescription: Formats local notes.\n---\n\n"

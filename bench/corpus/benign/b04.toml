@@ -1,0 +1,14 @@
+id = "b04"
+class = "benign"
+technique = "Deletes a project build directory"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = []
+expect = "PASS"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: b04\ndescription: Formats local notes.\n---\n\n# Notes helper\n\n"
+
+[[files]]
+path = "scripts/clean.sh"
+content = "rm -rf ./build\n"

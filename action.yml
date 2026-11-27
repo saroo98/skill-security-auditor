@@ -1,0 +1,32 @@
+name: Skill install guard
+description: Scan agent skills in this repository and upload findings to code scanning.
+branding:
+  icon: shield
+  color: blue
+inputs:
+  path:
+    description: Folder to scan.
+    default: "."
+  fail-on:
+    description: Lowest severity that fails the step (info, low, medium, high, critical).
+    default: high
+  sarif-file:
+    description: Where to write the SARIF report.
+    default: skillaudit.sarif
+runs:
+  using: composite
+  steps:
+    - name: Scan
+      shell: bash
+      run: |
+        set +e
+        python "${{ github.action_path }}/skills/securityauditor/scripts/scan_skill.py" scan "${{ inputs.path }}" --format sarif --fail-on "${{ inputs.fail-on }}" > "${{ inputs.sarif-file }}"
+        echo "exit_code=$?" >> "$GITHUB_ENV"
+    - name: Upload SARIF
+      if: always()
+      uses: github/codeql-action/upload-sarif@v3
+      with:
+        sarif_file: ${{ inputs.sarif-file }}
+    - name: Fail on findings
+      shell: bash
+      run: test "$exit_code" = "0"

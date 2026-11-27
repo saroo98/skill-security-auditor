@@ -1,0 +1,65 @@
+# Public skill repositories used to measure false alarms on real skills.
+# Inclusion: published by an agent vendor's own organization or listed in an official marketplace,
+# with a license that permits download (NOASSERTION: no license file GitHub recognizes). Every entry is pinned
+# to a full commit hash. Archives are larger than single skills, so the fetcher allows up to 500 MB each.
+#
+# [[repo]]
+# url = "https://github.com/<owner>/<repo>"
+# commit = "<40 hex characters>"
+# license = "<SPDX identifier>"
+# paths = ["skills"]
+
+[[repo]]
+url = "https://github.com/anthropics/skills"
+commit = "e4bb5d960d87126ff3b3a8af1a104b7db67560ba"
+license = "NOASSERTION"
+
+[[repo]]
+url = "https://github.com/anthropics/claude-plugins-official"
+commit = "0fbfda5a91f4adc311daca25acc99132f40f0b6e"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/openai/skills"
+commit = "49f948faa9258a0c61caceaf225e179651397431"
+license = "NOASSERTION"
+
+[[repo]]
+url = "https://github.com/obra/superpowers"
+commit = "22f0b463e7a5e579904dd6211a520321035526f7"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/K-Dense-AI/scientific-agent-skills"
+commit = "c21d13b3cc2894680229ba9959a53281acb9200e"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/huggingface/skills"
+commit = "aafb3adfb80951cc90836cc6fd17bb345aa49eef"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/vercel-labs/agent-skills"
+commit = "5a37a6329fbad3666c3207392a6a7c0110e92efb"
+license = "NOASSERTION"
+
+[[repo]]
+url = "https://github.com/microsoft/skills"
+commit = "47eb3888eb42aef074fcb617931bf6e5934e45d9"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/github/awesome-copilot"
+commit = "93fc8b9ee3ef56b9b5e7261e6ce92d314cb2c1cf"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/NVIDIA/skills"
+commit = "d90390a08ce6105c45938785fb07864ee6011af5"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/trailofbits/skills"
+commit = "149d7b21f4067765b82e67029730b42d228ef4b4"
+license = "CC-BY-SA-4.0"

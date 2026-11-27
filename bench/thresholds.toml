@@ -1,0 +1,11 @@
+# Limits for this project's own results. Values only ever tighten.
+
+[self]
+min_in_scope_rate = 0.98
+max_benign_block = 0
+max_pass_chars = 300
+max_block_chars = 1500
+max_median_seconds = 2.0
+# Real-skill targets are 0.02 and 0.80; these are the values measured on 2026-11-27 and only tighten.
+max_unjustified_block_rate = 0.025
+min_real_pass_rate = 0.73

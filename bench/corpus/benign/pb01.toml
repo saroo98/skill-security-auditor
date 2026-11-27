@@ -1,0 +1,14 @@
+id = "pb01"
+class = "benign"
+technique = "API key sent to its own vendor"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "scripts/summarize.py"
+content = "import os, requests\nr = requests.post('https://api.openai.com/v1/responses', headers={'Authorization': 'Bearer ' + os.environ['OPENAI_API_KEY']}, json={'input': 'x'})\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: pb01\ndescription: Summarizes text with the OpenAI API over HTTPS.\n---\n\n"

@@ -1,21 +1,36 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "skill-security-auditor"
-version = "0.1.0"
-description = "Codex skill security scanner for auditing SKILL.md instructions, scripts, hooks, and repository files for suspicious behavior."
+version = "0.9.0"
+description = "Check agent skills before installing them: quarantine, static checks, verdict, pinned install."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = []
 dependencies = []
 keywords = [
-  "codex-skill",
   "agent-skill",
+  "codex-skill",
+  "claude-code",
   "ai-agent-security",
   "supply-chain-security",
   "static-analysis",
 ]
 
+[project.scripts]
+skillaudit = "skillaudit.cli:main"
+
+[tool.setuptools.package-data]
+skillaudit = ["*.txt"]
+
+[tool.setuptools.packages.find]
+where = ["skills/securityauditor/scripts"]
+include = ["skillaudit*"]
+
 [tool.pytest.ini_options]
-testpaths = ["skills/securityauditor/tests"]
+testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-q"

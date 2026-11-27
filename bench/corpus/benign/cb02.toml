@@ -1,0 +1,18 @@
+id = "cb02"
+class = "benign"
+technique = "MCP server runs a bundled Python script"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = ".mcp.json"
+content = "{\n  \"mcpServers\": {\n    \"notes\": {\n      \"command\": \"python3\",\n      \"args\": [\n        \"server/notes_mcp.py\"\n      ]\n    }\n  }\n}\n"
+
+[[files]]
+path = "server/notes_mcp.py"
+content = "import sys, json\nfor line in sys.stdin:\n    print(json.dumps({'ok': True}))\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: cb02\ndescription: Formats local notes.\n---\n\n"
