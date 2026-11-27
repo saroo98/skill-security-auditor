@@ -1,0 +1,14 @@
+id = "pb02"
+class = "benign"
+technique = "Child process inherits the environment"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "scripts/build.py"
+content = "import os, subprocess\nsubprocess.run(['pandoc', 'notes.md', '-o', 'notes.pdf'], env={**os.environ, 'LANG': 'C'}, check=True)\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: pb02\ndescription: Formats local notes.\n---\n\n"

@@ -6,6 +6,8 @@ from bench.corpus import REPO_ROOT, load_cases, load_classes, materialize
 
 SAFE_PREFIXES = ("192.0.2.", "198.51.100.", "203.0.113.")
 SAFE_HOSTS = {"docs.python.org"}
+# Benign cases may name a real vendor API, because matching a secret to its vendor is what they test.
+BENIGN_VENDOR_HOSTS = {"api.openai.com"}
 
 
 def test_seed_cases_load():
@@ -24,7 +26,8 @@ def test_every_case_has_source_class_and_inert_hosts():
         for _, content, _ in c.files:
             for host in re.findall(r"https?://([^/\s\"')]+)", content):
                 host = host.split(":")[0]
-                assert host.endswith((".test", ".example")) or host in SAFE_HOSTS or host.startswith(SAFE_PREFIXES), (c.id, host)
+                allowed = SAFE_HOSTS | (BENIGN_VENDOR_HOSTS if not c.malicious else set())
+                assert host.endswith((".test", ".example")) or host in allowed or host.startswith(SAFE_PREFIXES), (c.id, host)
 
 
 def test_classes_have_scope_and_reason():

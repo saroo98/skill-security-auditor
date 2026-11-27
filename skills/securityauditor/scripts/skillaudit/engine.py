@@ -9,13 +9,13 @@ from pathlib import Path
 from typing import Callable
 
 from . import policy
-from .analyzers import legacy, shell
+from .analyzers import legacy, python_ast, shell
 from .discovery import discover
 from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, verdict_for
 from .quarantine import tree_hash
 
 REPOSITORY_UNIT = "(repository)"
-ANALYZERS: dict[str, Callable[[FileEntry], list[Capability]]] = {"shell": shell.analyze}
+ANALYZERS: dict[str, Callable[[FileEntry], list[Capability]]] = {"shell": shell.analyze, "python": python_ast.analyze}
 _NAME = re.compile(r"^name:\s*['\"]?([^'\"\n]+?)['\"]?\s*$", re.MULTILINE)
 
 
