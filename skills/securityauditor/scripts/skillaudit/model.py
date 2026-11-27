@@ -79,6 +79,7 @@ class UnitResult:
     findings: list[Finding]
     not_checked: list[NotChecked]
     verdict: str
+    suppressed: list[tuple[Finding, str]] = field(default_factory=list)
 
 
 @dataclass

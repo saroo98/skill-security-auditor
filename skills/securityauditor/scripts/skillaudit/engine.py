@@ -16,6 +16,8 @@ from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, ma
 from .quarantine import tree_hash
 
 REPOSITORY_UNIT = "(repository)"
+IN_TREE_SUPPRESSION_FILES = {".skillaudit.toml", "skillaudit-baseline.json", ".skillauditignore"}
+_IGNORE_MARK = re.compile(r"\b(skillaudit|skillspector)\s*:\s*(ignore|disable|skip)", re.IGNORECASE)
 ANALYZERS: dict[str, Callable[[FileEntry], list[Capability]]] = {
     "shell": shell.analyze,
     "python": python_ast.analyze,
@@ -55,6 +57,12 @@ def analyze_entry(entry: FileEntry) -> list[Capability]:
     for cap in hidden.analyze(entry):
         if cap not in caps:
             caps.append(cap)
+    name = entry.rel.rsplit("/", 1)[-1]
+    if name in IN_TREE_SUPPRESSION_FILES:
+        caps.append(Capability("suppression", entry.rel, None, f"suppression file {name} inside the scanned tree"))
+    for number, line in enumerate(entry.text.splitlines(), start=1):
+        if _IGNORE_MARK.search(line):
+            caps.append(Capability("suppression", entry.rel, number, line.strip()[:300]))
     return caps
 
 

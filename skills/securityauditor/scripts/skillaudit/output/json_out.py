@@ -25,6 +25,7 @@ def result_to_dict(result: ScanResult) -> dict:
                 key=lambda c: (c["file"], c["line"] or 0, c["kind"], json.dumps(c["detail"], sort_keys=True)),
             ),
             "findings": [{**asdict(f), "file": sanitize(f.file, 400), "message": sanitize(f.message, 400)} for f in ordered(unit.findings)],
+            "suppressed": [{**asdict(f), "file": sanitize(f.file, 400), "reason": sanitize(r, 300)} for f, r in unit.suppressed],
             "not_checked": sorted(
                 ({"path": sanitize(n.rel, 400), "reason": sanitize(n.reason, 300), "severity": n.severity} for n in unit.not_checked),
                 key=lambda n: (n["path"], n["reason"]),
@@ -46,6 +47,7 @@ def result_from_dict(data: dict) -> ScanResult:
                           for c in u["capabilities"]],
             findings=[Finding(**f) for f in u["findings"]],
             not_checked=[NotChecked(n["path"], n["reason"], n["severity"]) for n in u["not_checked"]],
+            suppressed=[(Finding(**{k: v for k, v in s.items() if k != "reason"}), s["reason"]) for s in u.get("suppressed", [])],
         ))
     return ScanResult(units=units, elapsed=0.0, tree_hash=data["tree_hash"], errors=list(data.get("errors", [])))
 

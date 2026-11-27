@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-RULESET_VERSION = "1"  # bump whenever a check's behavior changes; it keys the verdict cache
+RULESET_VERSION = "2"  # bump whenever a check's behavior changes; it keys the verdict cache
 
 
 @dataclass(frozen=True)
@@ -38,6 +38,7 @@ _TABLE: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("agent-config-change", "high", "Changes agent settings, permissions or other skills", ("AST03", "AST06")),
     ("undeclared-secret-read", "high", "Reads credential files without saying so", ("AST04",)),
     ("undeclared-persist", "high", "Installs startup items without saying so", ("AST04",)),
+    ("suppression-in-tree", "high", "The skill tries to suppress scanner findings about itself", ("AST08",)),
     ("binary-referenced", "high", "Instructions point at a binary or archive that cannot be checked", ("AST01",)),
     ("secret-to-unknown-host", "medium", "A secret is sent to a host with no known vendor", ("AST01",)),
     ("shell-dynamic", "medium", "Runs a shell command built at run time", ("AST03",)),

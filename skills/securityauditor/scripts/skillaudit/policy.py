@@ -38,6 +38,7 @@ _SIMPLE = {
     "pkg.install": "runtime-pkg-install",
     "fs.write.outside": "write-outside-workspace",
     "env.read": "env-read",
+    "suppression": "suppression-in-tree",
 }
 DECLARABLE = {"net.outbound", "secret.read", "persist", "pkg.install", "fs.write.outside", "exec.shell"}
 _UNDECLARED = {"secret.read": "undeclared-secret-read", "persist": "undeclared-persist"}

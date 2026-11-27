@@ -18,7 +18,10 @@ from .fetch import FetchError, download, resolve
 from .model import SEVERITIES, SEVERITY_RANK, VERDICT_RANK, NotChecked, ScanResult, make_finding, verdict_for
 from .output.brief import render_brief
 from .output.json_out import render_json, result_from_dict, result_to_dict
+from .output.sarif import render_sarif
 from .output.text import render_text
+from . import suppress
+import tomllib
 from .packet import LIMIT, build_packet, linked_markdown
 from .quarantine import UnsafeArchive, archive_commit, cache_get, cache_put, home, place, tree_hash
 
@@ -41,6 +44,8 @@ def _render(result: ScanResult, fmt: str, **kw) -> str:
         return render_json(result)
     if fmt == "brief":
         return render_brief(result, **kw)
+    if fmt == "sarif":
+        return render_sarif(result)
     return render_text(result)
 
 
@@ -52,7 +57,17 @@ def cmd_scan(args: argparse.Namespace) -> int:
     if args.max_file_size < 1:
         print("Invalid input: --max-file-size must be greater than zero.", file=sys.stderr)
         return 2
+    try:
+        suppressions = suppress.load(Path(args.config) if args.config else None, Path(args.baseline) if args.baseline else None)
+    except (OSError, ValueError, tomllib.TOMLDecodeError) as exc:
+        print(f"Invalid input: {' '.join(str(exc).split())}", file=sys.stderr)
+        return 2
     result = scan_path(target, max_file_size=args.max_file_size)
+    for unit in result.units:
+        unit.findings, unit.suppressed = suppress.apply(unit.findings, suppressions)
+        unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
+    if args.write_baseline:
+        suppress.write_baseline(result, Path(args.write_baseline))
     fmt = "json" if args.json_output else args.format
     print(_render(result, fmt))
     if result.errors:
@@ -277,7 +292,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     scan = sub.add_parser("scan", help="scan a local directory and report findings")
     scan.add_argument("target")
-    scan.add_argument("--format", choices=("brief", "text", "json"), default="text")
+    scan.add_argument("--format", choices=("brief", "text", "json", "sarif"), default="text")
+    scan.add_argument("--config", help="TOML file with [[suppress]] entries (check, path, reason)")
+    scan.add_argument("--baseline", help="JSON baseline of accepted finding fingerprints, each with a reason")
+    scan.add_argument("--write-baseline", help="write the current findings as a baseline to fill in")
     scan.add_argument("--json", action="store_true", dest="json_output", help="alias for --format json")
     scan.add_argument("--fail-on", choices=SEVERITIES, default="high")
     scan.add_argument("--max-file-size", type=int, default=1_048_576)

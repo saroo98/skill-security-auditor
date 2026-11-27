@@ -21,6 +21,9 @@ def render_text(result: ScanResult) -> str:
                 f"  {sanitize(f.message, 300)}",
                 f"  Evidence: {f.evidence}",
             ]
+        if unit.suppressed:
+            lines.append(f"Suppressed by your config or baseline ({len(unit.suppressed)}):")
+            lines += [f"- [{sanitize(f.check_id, 60)}] {location(f)}: {sanitize(r, 200)}" for f, r in unit.suppressed]
         if unit.not_checked:
             lines.append("Not checked:")
             lines += [f"- {sanitize(n.rel, 160)} ({n.severity}): {sanitize(n.reason, 160)}" for n in unit.not_checked]
