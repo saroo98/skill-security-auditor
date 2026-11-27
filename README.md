@@ -75,7 +75,7 @@ Agent skills are folders of instructions and scripts that an AI coding agent loa
 | Agent | Skills folder |
 | --- | --- |
 | Claude Code | `~/.claude/skills/securityauditor` |
-| Codex | `~/.codex/skills/securityauditor` |
+| Codex | `~/.agents/skills/securityauditor` |
 
 **2. Check a skill before installing it:**
 
