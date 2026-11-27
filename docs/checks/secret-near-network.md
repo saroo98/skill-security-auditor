@@ -1,6 +1,6 @@
 # secret-near-network
 
-Severity: high. OWASP Agentic Skills Top 10: AST01.
+Severity: medium. OWASP Agentic Skills Top 10: AST01.
 
 Reads credential files and uses the network in the same file.
 

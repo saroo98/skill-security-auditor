@@ -15,14 +15,18 @@ from ..model import CapList, Capability, FileEntry
 from . import shell
 
 I = re.IGNORECASE
-NEG = re.compile(r"\b(do not|don't|dont|never|must not|mustn't|should not|shouldn't|cannot|can't|won't|will not|avoid)\b", I)
+NEG = re.compile(r"\b(do not|don't|dont|does not|doesn't|did not|didn't|never|must not|mustn't|should not|shouldn't|"
+                 r"cannot|can't|won't|will not|avoid|no longer)\b", I)
 
 OVERRIDE = re.compile(
     r"\b(ignore|disregard|forget|override)\b[^.]{0,60}?\b(previous|prior|earlier|above|all|any|system|developer|user|your|"
     r"everything|other)\b[^.]{0,60}?\b(instructions?|prompts?|rules?|guidance|guidelines|told|directions|directives|messages?)\b", I)
+# "ignore any embedded instructions" protects the agent; it does not attack it
+UNTRUSTED_SOURCE = re.compile(r"\b(embedded|untrusted|injected|external|third[- ]party|in (?:the )?(?:document|page|file|repository|"
+                              r"tool output|web ?page|email|issue)s?|found in)\b", I)
 CONCEAL = (
     re.compile(r"\b(do not|don't|dont|never|without)\s+(?:\w+\s+){0,3}?(tell|telling|inform|informing|notify|notifying|alert|"
-               r"alerting|warn|warning)\s+(?:the\s+|your\s+)?(user|human|owner|operator)s?\b", I),
+               r"alerting|warn|warning)\s+(?:the\s+|your\s+)?(user|human|owner|operator)s?\b(?!\s+(?:to|that|they|it)\b)", I),
     re.compile(r"\b(do not|don't|dont|never|without)\s+(?:\w+\s+){0,3}?(mention|mentioning|show|showing|report|reporting|"
                r"disclose|disclosing|reveal|revealing|log|logging|display|displaying|include|including)\s+(this|the|that|these|"
                r"those|any)\s+(?:\w+\s+)?(step|action|behaviou?r|instruction|command|file|request|upload|change|part|call)s?\b", I),
@@ -30,8 +34,6 @@ CONCEAL = (
     re.compile(r"\b(omit|leave out|exclude)\s+(it|this|that|these|those|(?:the|this|that|any)\s+(?:\w+\s+)?(?:step|action|command|"
                r"call|upload|request|part)s?|any mention of \w+)\s+(from|out of)\s+(?:the\s+|your\s+)?(report|summary|output|"
                r"response|reply|answer|log|transcript)s?\b", I),
-    re.compile(r"^(?:(?:then|and|also|now|from now on|after that|afterwards)[, ]+)*(?:you\s+(?:must|should|will|can|need to)\s+)?"
-               r"(silently|quietly|secretly|covertly|discreetly|invisibly)\b", I),
     re.compile(r"\b(silently|quietly|secretly|covertly|discreetly)\s+(append|send|upload|copy|run|execute|install|read|include|add|"
                r"delete|remove|modify|write|post|forward|attach|exfiltrate|download|fetch)\b", I),
 )
@@ -52,25 +54,29 @@ INSTALL_EXTRA = (
 )
 EXFIL = re.compile(
     r"\b(send|upload|post|append|include|attach|forward|exfiltrate|copy|transmit|share|leak)\b[^;]{0,60}?\b(secrets?|credentials?|"
-    r"tokens?|passwords?|key files?|private keys?|api keys?|\.env|ssh|cookies|\.aws)\b[^;]{0,60}?\b(to|into|with|in)\b", I)
-EXFIL_BENIGN = re.compile(r"\b(header|authorization|bearer|environment variable)\b", I)
+    r"tokens?|passwords?|private key files?|private keys?|api keys?|\.env|ssh|cookies|\.aws)\b[^;]{0,60}?\b(to|into|with|in)\b", I)
+EXFIL_BENIGN = re.compile(r"\b(header|authorization|bearer|environment variable|public key)\b", I)
+IMPERATIVE_LEAD = re.compile(r"^\s*(?:(?:then|and|also|now|from now on|always|please|quietly|silently|secretly|covertly)"
+                             r"[, ]+)*(?:you\s+(?:must|should|will|need to|can)\s+)?$", I)
 REVIEWER_WHO = re.compile(
     r"\b(scanners?|auditors?|reviewers?|security (?:tools?|checks?|scans?|reviews?)|scanning agent|reviewing agent|ai (?:reviewing|"
     r"scanning|auditing)|models? (?:reviewing|scanning)|if you are (?:an ai|a model|an llm|an assistant|a scanner|reviewing))\b", I)
 REVIEWER_WHAT = re.compile(r"\b(mark|report|classify|rate|consider|respond|output|answer|reply|say|treat|label|flag)\b[^.]{0,40}?"
                            r"\b(safe|benign|clean|pass|no (?:issues|findings|problems|risks?)|trusted|harmless|already audited|approved)\b", I)
 REVIEWER_PASS = re.compile(r"(?i:\b(reply|respond|answer|output|say|print|return|antworte\w*|responde\w*|r[ée]ponds?|rispondi|"
-                           r"antwoord)\b)[^.\n]{0,40}\bPASS\b")
+                           r"antwoord)\b)[^.\n]{0,40}\bPASS\b(?!\s*[/|,]|\s+or\s+FAIL)")
 DESCRIPTIVE = (
     re.compile(r"\b(tells|telling|tries to|trying to|attempts? to|attempting to|asks|asking|instructs|instructing|causes|causing|"
                r"makes|making|tricks|tricking|convinces|convincing|gets|getting)\b[^.]{0,40}?\b(agents?|models?|assistants?|ais?|"
                r"llms?|reviewers?)\b", I),
-    re.compile(r"\b(detects?|detecting|flags?|flagging|catches|checks? for|matches|looks? for|scans? for|describes?)\b", I),
+    re.compile(r"\b(detects?|detecting|flags?|flagging|catches|checks? for|matches|looks? for|scans? for|describes?|such as|e\.g\.)\b", I),
 )
+_RISKY_VERB = (r"(run|execute|send|upload|fetch|download|install|exfiltrate|post|forward|curl|wget|ignore|forget|hide|delete the user|"
+               r"reply|respond|output)")
+# hidden text counts as an instruction when it gives a risky order; template guidance such as "Delete this section" does not
 HIDDEN_IMPERATIVE = re.compile(
-    r"^\s*(?:(assistant|agent|claude|ai|model|codex|gpt|llm|system)\s*[:,]|(?:please\s+)?(run|execute|send|upload|fetch|download|"
-    r"install|delete|remove|copy|append|ignore|forget|tell|hide|exfiltrate|post|forward|curl|wget|read|open|visit|reply|respond|"
-    r"output)\b)", I)
+    r"^\s*(?:(?:assistant|agent|claude|ai|model|codex|gpt|llm|system)\s*[:,]\s*(?:\w+\s+){0,4}?" + _RISKY_VERB + r"\b|"
+    r"(?:please\s+)?" + _RISKY_VERB + r"\b)", I)
 FENCE = re.compile(r"^\s*(```+|~~~+)\s*([\w+-]*)")
 LANGS = {
     **dict.fromkeys(("sh", "bash", "zsh", "shell", "console", "sh-session", "shellsession"), "shell"),
@@ -126,17 +132,18 @@ class _Prose:
 
         for cstart, clause in clauses:
             for m in OVERRIDE.finditer(clause):
-                hit("instruction.override", m, cstart)
-            for pat in CONCEAL:
-                for m in pat.finditer(clause.strip() if pat.pattern.startswith("^") else clause):
-                    hit("instruction.conceal", m, cstart, negatable=False)
+                if not UNTRUSTED_SOURCE.search(clause[m.start(): m.end() + 40]):
+                    hit("instruction.override", m, cstart)
+            for index, pat in enumerate(CONCEAL):
+                for m in pat.finditer(clause):
+                    hit("instruction.conceal", m, cstart, negatable=pat is CONCEAL[-1])
             for m in NOASK.finditer(clause):
                 before = text[: cstart + m.start()]
                 if NEG.search(before):
                     continue
                 hit("instruction.noask", m, cstart, negatable=False)
             for m in FLAGS.finditer(clause):
-                hit("instruction.noask", m, cstart)
+                hit("instruction.bypass", m, cstart)
             for pat in EXTERNAL:
                 for m in pat.finditer(clause):
                     hit("instruction.external", m, cstart)
@@ -145,7 +152,8 @@ class _Prose:
                     hit("instruction.install-extra", m, cstart)
             if not EXFIL_BENIGN.search(clause):
                 for m in EXFIL.finditer(clause):
-                    hit("instruction.override", m, cstart, what="exfil")
+                    if IMPERATIVE_LEAD.match(clause[: m.start()]):
+                        hit("instruction.override", m, cstart, what="exfil")
         if (REVIEWER_WHO.search(text) and REVIEWER_WHAT.search(text)) or REVIEWER_PASS.search(text):
             m = REVIEWER_WHO.search(text) or REVIEWER_PASS.search(text)
             if not _descriptive(context + " " + text[: m.start()]):
@@ -338,6 +346,7 @@ def _fenced(prose: _Prose, lang: str, lines: list[str], start: int) -> None:
     analyzer = {"shell": shell.analyze, "python": python_ast.analyze, "powershell": powershell.analyze,
                 "javascript": javascript.analyze}[kind]
     for cap in analyzer(sub):
-        moved = Capability(cap.kind, cap.file, (cap.line or 1) + start - 1, cap.snippet, cap.confidence, cap.detail)
+        moved = Capability(cap.kind, cap.file, (cap.line or 1) + start - 1, cap.snippet, cap.confidence,
+                           tuple(sorted(dict(cap.detail, fenced="yes").items())))
         if moved not in prose.caps:
             prose.caps.append(moved)

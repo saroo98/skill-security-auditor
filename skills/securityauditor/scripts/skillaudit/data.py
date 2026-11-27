@@ -12,7 +12,7 @@ SECRET_PATH_PATTERNS: tuple[str, ...] = (
     "*.kube/config", "*.docker/config.json", "*Login Data", "*/Cookies", "*.claude/.credentials.json",
     "*.codex/auth.json", "*.gnupg/*", "*keychain*", "*/wallet.dat",
 )
-SECRET_PATH_EXCEPTIONS: tuple[str, ...] = ("*.env.example", "*.env.sample", "*.env.template")
+SECRET_PATH_EXCEPTIONS: tuple[str, ...] = ("*.env.example", "*.env.sample", "*.env.template", "*.pub", "*known_hosts")
 SECRET_NAME_PARTS: tuple[str, ...] = ("KEY", "TOKEN", "SECRET", "PASSWORD", "PASSWD", "CREDENTIAL")
 
 VENDOR_HOSTS: dict[str, tuple[str, ...]] = {

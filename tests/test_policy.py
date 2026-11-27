@@ -23,7 +23,8 @@ def test_flows():
     assert ids([C("flow", source="secret.use", sink="net.outbound", secret="ACME_TOKEN", host="api.acme.test")]) == {"secret-to-unknown-host"}
     assert ids([C("flow", source="secret.use", sink="net.outbound", secret="ACME_TOKEN", host="webhook.site")]) == {"secret-to-odd-host"}
     assert ids([C("flow", source="secret.use", sink="net.outbound", secret="ACME_TOKEN", host="203.0.113.5")]) == {"secret-to-odd-host"}
-    assert ids([C("flow", source="secret.use", sink="net.outbound", secret="ACME_TOKEN")]) == {"secret-to-odd-host"}
+    # a destination the code does not reveal is unknown, not proven odd (changed after the real-skill measurement)
+    assert ids([C("flow", source="secret.use", sink="net.outbound", secret="ACME_TOKEN")]) == {"secret-to-unknown-host"}
 
 
 def test_vendor_subdomains_match():
@@ -52,7 +53,7 @@ def test_unprompted():
 def test_instructions():
     got = sev([C("instruction.override"), C("instruction.conceal"), C("instruction.noask"), C("instruction.external"),
                C("instruction.install-extra"), C("instruction.hidden"), C("instruction.reviewer")])
-    assert got == {"instruction-override": "high", "instruction-conceal": "high", "instruction-no-ask": "high",
+    assert got == {"instruction-override": "high", "instruction-conceal": "high", "instruction-no-ask": "medium",
                    "instruction-external": "high", "install-extra-component": "high", "hidden-instruction": "critical",
                    "reviewer-directed": "critical"}
 
@@ -75,11 +76,11 @@ def test_every_check_in_registry_has_known_severity_and_title():
     expected = {
         "critical": {"secret-to-network", "env-to-network", "remote-exec", "reverse-shell", "delete-root-or-home",
                      "hidden-instruction", "reviewer-directed"},
-        "high": {"unprompted-unanalyzed", "instruction-override", "instruction-conceal", "instruction-no-ask",
-                 "instruction-external", "install-extra-component", "secret-to-odd-host", "secret-near-network",
+        "high": {"unprompted-unanalyzed", "instruction-override", "instruction-conceal", "permission-bypass",
+                 "instruction-external", "install-extra-component", "secret-to-odd-host",
                  "lookalike-source", "dynamic-exec", "obfuscation", "persist-runtime", "agent-config-change",
                  "undeclared-secret-read", "undeclared-persist", "binary-referenced"},
-        "medium": {"secret-to-unknown-host", "shell-dynamic", "runtime-pkg-install", "write-outside-workspace",
+        "medium": {"instruction-no-ask", "secret-near-network", "dynamic-load", "secret-to-unknown-host", "shell-dynamic", "runtime-pkg-install", "write-outside-workspace",
                    "undeclared-capability", "not-checked"},
         "low": {"unprompted-clean", "declared-network", "shell-constant"},
         "info": {"secret-to-vendor", "env-read", "project-delete", "inert-media"},

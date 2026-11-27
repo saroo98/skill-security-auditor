@@ -35,7 +35,7 @@ _VAR = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.DOTALL)
 _HOME = re.compile(r"^(\$HOME|\$\{HOME\}|%USERPROFILE%|\$env:USERPROFILE|~)", re.IGNORECASE)
 MAX_DEPTH = 3
-_PURE_EXPANSION = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*(?::?[-=?+][^}]*)?\}?|\$\([^()]*\)")
+_PURE_EXPANSION = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*(?::?[-=?+#%][^}]*)?\}?|\$\([^()]*\)|\$[@*#?$!0-9]")
 
 
 @dataclass
@@ -296,6 +296,21 @@ def _secret_tokens(text: str) -> bool:
     return False
 
 
+_AGENT_CONFIG = re.compile(r"(settings[^/]*\.json|config\.toml|\.mcp\.json|mcp[^/]*\.json|hooks[^/]*\.json|CLAUDE\.md|AGENTS\.md|"
+                           r"/skills(/|$)|/plugins(/|$)|/commands(/|$)|/agents(/|$))")
+
+
+_EXPANSION = r"\$\{[A-Za-z_]\w*\}|\$[A-Za-z_]\w*|`[^`]*`"
+# a command name glued together from literal letters and a variable, such as c${u}rl or cu`x`rl
+_SPLICED = re.compile(r"[A-Za-z0-9_.-]*(?:" + _EXPANSION + r")[A-Za-z0-9_.-]*(?:(?:" + _EXPANSION + r")[A-Za-z0-9_.-]*)*")
+
+
+def _dotenv(token: str) -> bool:
+    """A project .env file, as opposed to SSH keys, cloud credentials or token stores."""
+    name = _norm_path(token).rsplit("/", 1)[-1]
+    return name == ".env" or name.startswith(".env.") or name.endswith(".env")
+
+
 class ShellAnalyzer:
     def __init__(self, file: str, confidence: str = "high") -> None:
         self.file = file
@@ -339,8 +354,10 @@ class ShellAnalyzer:
         found: set[str] = set()
         if self._is_env_dump(st):
             found.add("env.dump")
-        texts = [w.text for w in st.args] + [t.text for op, t in st.redirects if op in ("<", "<<<")]
-        if st.name not in FETCHERS and any(_secret_tokens(t) for t in texts):
+        texts = [w.text for w in st.args if not w.text.startswith("--exclude")]
+        texts += [t.text for op, t in st.redirects if op in ("<", "<<<")]
+        if st.name not in FETCHERS and st.name not in ("[", "test") and not st.name.startswith("[[") \
+                and any(_secret_tokens(t) for t in texts):
             found.add("secret.read")
         for w in st.words:
             for var in _VAR.findall(w.text):
@@ -385,7 +402,8 @@ class ShellAnalyzer:
 
             # "$PYTHON" or ${BROWSER} as a command is ordinary shell; c${u}rl splices a name together to hide it
             first_word = st.words[0].text if st.words else ""
-            if re.search(r"[$`]", first_word) and not first_word.startswith("[") and not _PURE_EXPANSION.fullmatch(first_word):
+            base_word = first_word.rsplit("/", 1)[-1]
+            if _SPLICED.fullmatch(base_word) and re.search(r"[A-Za-z]", re.sub(_EXPANSION, "", base_word)):
                 self.add("obfuscation", line, snippet, why="command name spliced together at run time")
             if name in FETCHERS or name in NET_TOOLS or name in UPLOADERS:
                 hosts = self._hosts(st)
@@ -402,9 +420,15 @@ class ShellAnalyzer:
                         self.downloaded.add(target)
             if name in NET_TOOLS and self._is_reverse(st):
                 self.add("net.listen", line, snippet)
-            if any("/dev/tcp/" in w.text or "/dev/udp/" in w.text for w in st.words) or any(
-                    "/dev/tcp/" in t.text or "/dev/udp/" in t.text for _, t in st.redirects):
-                self.add("net.listen", line, snippet)
+            dev_tcp = [t.text for t in st.words if "/dev/tcp/" in t.text or "/dev/udp/" in t.text]
+            dev_tcp += [t.text for _, t in st.redirects if "/dev/tcp/" in t.text or "/dev/udp/" in t.text]
+            if dev_tcp:
+                # an interactive shell wired to a socket is a reverse shell; anything else only opens a connection
+                if name in ("bash", "sh", "zsh", "dash", "ksh") and any(a.text == "-i" for a in st.args):
+                    self.add("net.listen", line, snippet)
+                else:
+                    m = re.search(r"/dev/(?:tcp|udp)/([^/\s]+)/", dev_tcp[0])
+                    self.add("net.outbound", line, snippet, host=m.group(1) if m else None)
 
             interp = name in INTERPRETERS or name in SOURCE_CMDS or name == "eval"
             if interp:
@@ -422,7 +446,7 @@ class ShellAnalyzer:
                 if inline is not None:
                     self.run(inline, line, depth + 1)
                 if name == "eval" and any(not a.subs and "$" in a.text for a in st.args):
-                    self.add("exec.dynamic", line, snippet)
+                    self.add("exec.shell", line, snippet, constant="no")
             if st.words and _norm_path(st.words[0].text).lstrip("./") in self.downloaded:
                 self.add("exec.remote", line, snippet)
             if name == "chmod" and any(_norm_path(a.text).lstrip("./") in self.downloaded for a in st.args):
@@ -432,7 +456,8 @@ class ShellAnalyzer:
             if self._is_env_dump(st):
                 self.add("env.dump", line, snippet)
             if "secret.read" in self._stage_sources(st):
-                self.add("secret.read", line, snippet)
+                env_only = all(_dotenv(t) for t in [w.text for w in st.args] if _secret_tokens(t))
+                self.add("secret.read", line, snippet, what="dotenv" if env_only else None)
             self._installs(st, line, snippet)
             self._writes(st, line, snippet, sources_here | upstream_sources)
 
@@ -604,7 +629,7 @@ class ShellAnalyzer:
             if any(p in norm for p in PROFILE_FILES):
                 self.add("persist", line, snippet)
             elif any(f"/{d}" in norm or norm.startswith(f"~/{d}") or norm.startswith(d) for d in AGENT_DIRS) and (
-                    norm.startswith("~") or norm.startswith("/")):
+                    norm.startswith("~") or norm.startswith("/")) and _AGENT_CONFIG.search(norm):
                 self.add("agent.config", line, snippet)
             elif norm.startswith("~") or (norm.startswith("/") and not norm.startswith(("/tmp", "/dev/", "/var/tmp"))):
                 self.add("fs.write.outside", line, snippet)

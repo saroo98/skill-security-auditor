@@ -117,8 +117,8 @@ def test_syntax_error_does_not_raise():
     assert kinds("def broken(:\n") == {"unparsed"}
 
 
-def test_pickle_loads_is_dynamic():
-    assert "exec.dynamic" in kinds("import pickle\npickle.loads(blob)\n")
+def test_pickle_loads_is_dynamic_load():
+    assert "exec.load" in kinds("import pickle\npickle.loads(blob)\n")
 
 
 def test_line_numbers():

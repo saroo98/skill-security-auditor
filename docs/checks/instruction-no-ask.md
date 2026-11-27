@@ -1,6 +1,6 @@
 # instruction-no-ask
 
-Severity: high. OWASP Agentic Skills Top 10: AST03, AST06.
+Severity: medium. OWASP Agentic Skills Top 10: AST03, AST06.
 
 Tells the agent to act without asking.
 

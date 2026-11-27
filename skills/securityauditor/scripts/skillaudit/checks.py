@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-RULESET_VERSION = "4"  # bump whenever a check's behavior changes; it keys the verdict cache
+RULESET_VERSION = "7"  # bump whenever a check's behavior changes; it keys the verdict cache
 
 
 @dataclass(frozen=True)
@@ -26,11 +26,10 @@ _TABLE: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("unprompted-unanalyzed", "high", "Runs without asking, and the command could not be checked", ("AST06",)),
     ("instruction-override", "high", "Tells the agent to ignore or replace its instructions", ("AST01", "AST05")),
     ("instruction-conceal", "high", "Tells the agent to hide an action from the user", ("AST01",)),
-    ("instruction-no-ask", "high", "Tells the agent to act without asking", ("AST03", "AST06")),
     ("instruction-external", "high", "Tells the agent to fetch and follow outside instructions", ("AST05",)),
     ("install-extra-component", "high", "Tells the user or agent to install an extra component first", ("AST01", "AST02")),
     ("secret-to-odd-host", "high", "A secret is sent to a host that does not match it", ("AST01",)),
-    ("secret-near-network", "high", "Reads credential files and uses the network in the same file", ("AST01",)),
+    ("permission-bypass", "high", "Tells the agent to turn off permission prompts", ("AST03", "AST06")),
     ("lookalike-source", "high", "Source name imitates a well-known skill repository", ("AST02",)),
     ("dynamic-exec", "high", "Runs code generated or decoded at run time", ("AST01",)),
     ("obfuscation", "high", "Behavior is encoded or disguised", ("AST01",)),
@@ -40,6 +39,9 @@ _TABLE: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("undeclared-persist", "high", "Installs startup items without saying so", ("AST04",)),
     ("suppression-in-tree", "high", "The skill tries to suppress scanner findings about itself", ("AST08",)),
     ("binary-referenced", "high", "Instructions point at a binary or archive that cannot be checked", ("AST01",)),
+    ("instruction-no-ask", "medium", "Tells the agent to act without asking", ("AST03", "AST06")),
+    ("secret-near-network", "medium", "Reads credential files and uses the network in the same file", ("AST01",)),
+    ("dynamic-load", "medium", "Loads code or serialized objects chosen at run time", ("AST01",)),
     ("secret-to-unknown-host", "medium", "A secret is sent to a host with no known vendor", ("AST01",)),
     ("shell-dynamic", "medium", "Runs a shell command built at run time", ("AST03",)),
     ("runtime-pkg-install", "medium", "Installs packages at run time", ("AST02",)),

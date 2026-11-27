@@ -16,8 +16,9 @@ EXEC_SHELL = {
     "asyncio.create_subprocess_shell", "asyncio.create_subprocess_exec", "commands.getoutput",
 }
 EXEC_PREFIXES = ("os.exec", "os.spawn", "os.posix_spawn")
-DYNAMIC = {"eval", "exec", "compile", "__import__", "importlib.import_module", "pickle.loads", "pickle.load",
-           "marshal.loads", "dill.loads", "runpy.run_path", "runpy.run_module", "types.FunctionType"}
+DYNAMIC = {"eval", "exec", "compile", "types.FunctionType"}
+LOADERS = {"__import__", "importlib.import_module", "pickle.loads", "pickle.load", "marshal.loads", "dill.loads",
+           "dill.load", "runpy.run_path", "runpy.run_module", "joblib.load"}
 DECODERS = {"base64.b64decode", "base64.b32decode", "base64.b85decode", "base64.a85decode", "base64.decodebytes",
             "bytes.fromhex", "binascii.unhexlify", "binascii.a2b_base64", "codecs.decode", "zlib.decompress",
             "gzip.decompress", "lzma.decompress", "bz2.decompress"}
@@ -141,6 +142,7 @@ class _Analyzer:
             for child in ast.iter_child_nodes(node):
                 self.parents[child] = node
         self._imports()
+        self._env_aliases()
         self.folder = _Folder(self.aliases, self.consts)
         self._constants()
 
@@ -153,6 +155,15 @@ class _Analyzer:
                          tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in self.caps:
             self.caps.append(cap)
+
+    def _env_aliases(self) -> None:
+        """Names bound to os.environ resolve to it, so env.get("X") reads one variable as os.environ.get does."""
+        for node in ast.walk(self.tree):
+            if not (isinstance(node, ast.Assign) and len(node.targets) == 1 and isinstance(node.targets[0], ast.Name)):
+                continue
+            values = [node.value.body, node.value.orelse] if isinstance(node.value, ast.IfExp) else [node.value]
+            if any(_dotted(v, self.aliases) == "os.environ" for v in values if isinstance(v, (ast.Attribute, ast.Name))):
+                self.aliases[node.targets[0].id] = "os.environ"
 
     def _imports(self) -> None:
         for node in ast.walk(self.tree):
@@ -225,6 +236,10 @@ class _Analyzer:
         if isinstance(parent, ast.Attribute) and parent.attr in ("get", "setdefault", "pop", "__getitem__", "__setitem__", "update"):
             return False
         if isinstance(parent, ast.Compare):
+            return False
+        # env = os.environ (or "... if env is None else env") only names the environment; using a name later is not a dump
+        if isinstance(parent, ast.Assign) and parent.value is node or isinstance(parent, ast.IfExp) and \
+                isinstance(self.parents.get(parent), ast.Assign):
             return False
         if isinstance(parent, ast.Assign) and node in parent.targets:
             return False
@@ -348,7 +363,7 @@ class _Analyzer:
         if n == "pip.main" or (short == "main" and n.startswith("pip.")):
             self.add("pkg.install", call)
 
-        if n in DYNAMIC or short in ("eval", "exec") and n in ("builtins.eval", "builtins.exec"):
+        if n in DYNAMIC or n in LOADERS or short in ("eval", "exec") and n in ("builtins.eval", "builtins.exec"):
             arg = call.args[0] if call.args else None
             if arg is not None and self._contains_network(arg, net_names):
                 self.add("exec.remote", call)
@@ -356,7 +371,7 @@ class _Analyzer:
                 self.add("obfuscation", call, why="executes decoded data")
                 self.add("exec.dynamic", call)
             elif arg is None or self.folder.fold(arg) is None:
-                self.add("exec.dynamic", call)
+                self.add("exec.load" if n in LOADERS else "exec.dynamic", call)
 
         if n in DELETE and call.args:
             target = self.folder.fold(call.args[0])

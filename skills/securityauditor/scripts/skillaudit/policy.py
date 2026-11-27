@@ -27,6 +27,8 @@ _SIMPLE = {
     "instruction.override": "instruction-override",
     "instruction.conceal": "instruction-conceal",
     "instruction.noask": "instruction-no-ask",
+    "instruction.bypass": "permission-bypass",
+    "exec.load": "dynamic-load",
     "instruction.external": "instruction-external",
     "instruction.install-extra": "install-extra-component",
     "instruction.hidden": "hidden-instruction",
@@ -57,7 +59,9 @@ def _flow_check(cap: Capability) -> str | None:
     if source != "secret.use":
         return None
     host = cap.get("host") or ""
-    if not host or is_raw_ip(host) or is_drop_host(host, cap.get("url")):
+    if not host:
+        return "secret-to-unknown-host"  # the destination could not be read from the code
+    if is_raw_ip(host) or is_drop_host(host, cap.get("url")):
         return "secret-to-odd-host"
     vendors = vendor_hosts(cap.get("secret") or "")
     if vendors:
@@ -88,11 +92,14 @@ def decide(caps: list[Capability], not_checked: list[NotChecked], *, declared: s
     findings: list[Finding] = []
     seen: set[tuple[str, str, int | None, str]] = set()
 
-    def add(check_id: str, cap: Capability, message: str | None = None) -> None:
+    def add(check_id: str, cap: Capability, message: str | None = None, severity: str | None = None) -> None:
         check = CHECKS[check_id]
-        severity = check.severity
+        severity = severity or check.severity
         if cap.file in unreferenced_low_roles and SEVERITY_RANK[severity] > SEVERITY_RANK[_CAP]:
             severity = _CAP
+        # code shown in reference documents is mostly examples; code in SKILL.md is what the agent is told to run
+        if cap.get("fenced") == "yes" and not cap.file.endswith("SKILL.md") and SEVERITY_RANK[severity] > SEVERITY_RANK["medium"]:
+            severity = "medium"
         key = (check_id, cap.file, cap.line, cap.snippet)
         if key in seen:
             return
@@ -102,7 +109,11 @@ def decide(caps: list[Capability], not_checked: list[NotChecked], *, declared: s
     flows_by_file = {c.file for c in caps if c.kind == "flow" and c.get("source") == "secret.read"}
     for cap in caps:
         check_id = _check_for(cap)
-        if check_id:
+        if not check_id:
+            continue
+        if declared is not None and cap.kind in ("pkg.install", "fs.write.outside") and cap.kind in declared:
+            add(check_id, cap, severity="low")  # the skill says it does this
+        else:
             add(check_id, cap)
 
     files_with_secret = {c.file for c in caps if c.kind == "secret.read"}
@@ -120,7 +131,9 @@ def decide(caps: list[Capability], not_checked: list[NotChecked], *, declared: s
                     add("declared-network", cap)
                 continue
             check_id = _UNDECLARED.get(cap.kind, "undeclared-capability")
-            add(check_id, cap, f"{CHECKS[check_id].title}: {_WORDS.get(cap.kind, cap.kind)}")
+            # reading a project .env file is common; credential stores are not
+            severity = "medium" if cap.kind == "secret.read" and cap.get("what") == "dotenv" else None
+            add(check_id, cap, f"{CHECKS[check_id].title}: {_WORDS.get(cap.kind, cap.kind)}", severity=severity)
     return findings
 
 
