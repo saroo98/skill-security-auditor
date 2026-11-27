@@ -37,8 +37,8 @@ def main(argv: list[str] | None = None) -> int:
         target = out / f"{owner}__{repo}"
         archive = out / "_downloads" / f"{owner}__{repo}.tar.gz"
         try:
-            download(url, archive)
-            extract(archive, target)
+            download(url, archive, max_bytes=500 * 1024 * 1024, timeout=120)
+            extract(archive, target, max_files=100_000, max_total_bytes=4 * 1024 ** 3)
             print(f"ok   {owner}/{repo}@{entry['commit'][:12]}")
         except (FetchError, UnsafeArchive, OSError) as exc:
             failures += 1
