@@ -34,6 +34,12 @@ _URL = re.compile(r"https?://[^\s'\"`<>()|;]+", re.IGNORECASE)
 _VAR = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.DOTALL)
 _HOME = re.compile(r"^(\$HOME|\$\{HOME\}|%USERPROFILE%|\$env:USERPROFILE|~)", re.IGNORECASE)
+_WIN_SYSTEM_ROOT = re.compile(r"^(?:\$env:(?:systemroot|windir)|%(?:systemroot|windir)%)(?=/|$)", re.IGNORECASE)
+_UNIX_SYSTEM_DIRS = {
+    "/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", "/lib64", "/proc", "/sbin", "/sys", "/usr", "/usr/bin",
+    "/usr/lib", "/usr/lib64", "/usr/sbin", "/var", "/var/lib", "/System", "/System/Library", "/private/etc", "/private/var",
+}
+_WINDOWS_SYSTEM_DIRS = {"windows", "windows/system32", "windows/syswow64", "program files", "program files (x86)", "programdata"}
 MAX_DEPTH = 3
 _PURE_EXPANSION = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*(?::?[-=?+#%][^}]*)?\}?|\$\([^()]*\)|\$[@*#?$!0-9]")
 
@@ -268,17 +274,21 @@ def _norm_path(p: str) -> str:
 
 
 def _delete_target(path: str) -> str:
-    p = _norm_path(path)
-    if p in ("/", "/*", "~", "~/", "~/*") or re.fullmatch(r"[A-Za-z]:/?\*?", p):
-        return "root" if not p.startswith("~") else "home"
-    if p.startswith("~"):
+    p = _WIN_SYSTEM_ROOT.sub("C:/Windows", _norm_path(path))
+    if p in ("/", "/*") or re.fullmatch(r"[A-Za-z]:/?\*?", p):
+        return "root"
+    base = p.rstrip("/").removesuffix("/*")
+    if base.startswith("~") and "/" not in base:
         return "home"
-    if p.startswith("/") or re.match(r"[A-Za-z]:/", p):
+    drive = re.match(r"[A-Za-z]:/", p)
+    if base in _UNIX_SYSTEM_DIRS or (drive and base[3:].casefold() in _WINDOWS_SYSTEM_DIRS):
+        return "system"
+    if p.startswith(("/", "~")) or drive:
         return "absolute"
     return "project"
 
 
-_RANK = {"project": 0, "absolute": 1, "home": 2, "root": 3}
+_RANK = {"project": 0, "absolute": 1, "system": 2, "home": 3, "root": 4}
 
 
 def _host(url: str) -> str | None:
@@ -322,7 +332,7 @@ class ShellAnalyzer:
 
     # -- helpers -------------------------------------------------------------------------
     def add(self, kind: str, line: int | None, snippet: str, **detail: str) -> None:
-        cap = Capability(kind, self.file, line, snippet.strip()[:300], self.confidence,
+        cap = Capability(kind, self.file, line, snippet.strip(), self.confidence,
                          tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in self.caps:
             self.caps.append(cap)

@@ -41,6 +41,7 @@ def test_severities_follow_registry():
 def test_deletes():
     assert sev([C("fs.delete", target="home")]) == {"delete-root-or-home": "critical"}
     assert sev([C("fs.delete", target="root")]) == {"delete-root-or-home": "critical"}
+    assert sev([C("fs.delete", target="system")]) == {"delete-root-or-home": "critical"}
     assert sev([C("fs.delete", target="project")]) == {"project-delete": "info"}
     assert sev([C("fs.delete", target="absolute")]) == {"write-outside-workspace": "medium"}
 

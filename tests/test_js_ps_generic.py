@@ -92,6 +92,7 @@ def test_powershell_encoded_command():
 
 def test_powershell_delete_and_secrets_and_persist():
     assert any(dict(c.detail).get("target") == "home" for c in ps("Remove-Item -Recurse -Force $env:USERPROFILE\n"))
+    assert any(c.get("target") == "system" for c in ps("Remove-Item -Recurse -Force $env:SystemRoot\\System32\n"))
     assert "secret.read" in kinds(ps("Get-Content $HOME\\.ssh\\id_rsa\n"))
     assert "env.dump" in kinds(ps("Get-ChildItem env: | Out-File e.txt\n"))
     assert "persist" in kinds(ps("Register-ScheduledTask -TaskName x -Action $a\n"))

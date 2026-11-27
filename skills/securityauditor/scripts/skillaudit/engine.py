@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import time
+from dataclasses import replace
 from pathlib import Path
 
 from typing import Callable
@@ -63,7 +64,7 @@ def analyze_entry(entry: FileEntry) -> list[Capability]:
         caps.append(Capability("suppression", entry.rel, None, f"suppression file {name} inside the scanned tree"))
     for number, line in enumerate(entry.text.splitlines(), start=1):
         if _IGNORE_MARK.search(line):
-            caps.append(Capability("suppression", entry.rel, number, line.strip()[:300]))
+            caps.append(Capability("suppression", entry.rel, number, line.strip()))
     return caps
 
 
@@ -93,8 +94,7 @@ def resolve_unprompted(caps: list[Capability], analyzed: set[str]) -> list[Capab
             value = "yes" if any(r == script or r == base + script or r.endswith("/" + script) for r in analyzed) else "no"
         else:
             value = "yes"
-        out.append(Capability(cap.kind, cap.file, cap.line, cap.snippet, cap.confidence,
-                              tuple(sorted(dict(cap.detail, analyzed=value).items()))))
+        out.append(replace(cap, detail=tuple(sorted(dict(cap.detail, analyzed=value).items()))))
     return out
 
 

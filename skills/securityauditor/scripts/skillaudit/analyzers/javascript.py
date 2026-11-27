@@ -102,7 +102,7 @@ class _JS:
 
     def add(self, kind: str, pos: int, **detail: str | None) -> None:
         line = self.line_of(pos)
-        snippet = self.lines[line - 1].strip()[:300] if line <= len(self.lines) else ""
+        snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
         cap = Capability(kind, self.rel, line, snippet, CONF, tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in self.caps:
             self.caps.append(cap)

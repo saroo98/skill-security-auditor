@@ -16,7 +16,7 @@ from .fetch import Source
 
 MAX_FILES = 2000
 MAX_TOTAL = 100 * 1024 * 1024
-_RESERVED = re.compile(r"^(con|prn|aux|nul|com[1-9]|lpt[1-9])(\..*)?$", re.IGNORECASE)
+_RESERVED = re.compile(r"(?:con|conin\$|conout\$|prn|aux|nul|(?:com|lpt)[1-9\u00b9\u00b2\u00b3])", re.IGNORECASE)
 _DRIVE = re.compile(r"^[A-Za-z]:")
 
 
@@ -43,7 +43,7 @@ def _check_name(name: str) -> list[str]:
     for part in parts:
         if part == "..":
             raise UnsafeArchive(f"parent directory in member path: {name!r}")
-        if _RESERVED.match(part):
+        if _RESERVED.fullmatch(part.partition(".")[0].rstrip(" ")):
             raise UnsafeArchive(f"reserved Windows name in member path: {name!r}")
         if part.endswith((".", " ")):
             raise UnsafeArchive(f"member name ends with a dot or space: {name!r}")
@@ -56,7 +56,29 @@ def _members(archive: Path, max_files: int, max_total: int,
              links: list[list[str]] | None = None) -> list[tuple[list[str], object, str]]:
     """Return (parts, handle, kind) for regular files; directories are implied. Raise on anything unsafe."""
     out: list[tuple[list[str], object, str]] = []
+    seen: dict[str, tuple[str, bool]] = {}
     total = 0
+
+    def register(parts: list[str], file: bool) -> None:
+        if file and not parts:
+            raise UnsafeArchive("archive file has an empty member path")
+        prefix = ""
+        for index, part in enumerate(parts):
+            prefix = f"{prefix}/{part}" if prefix else part
+            key = prefix.casefold()
+            is_file = file and index == len(parts) - 1
+            previous = seen.get(key)
+            if previous is not None:
+                old_path, old_is_file = previous
+                if is_file != old_is_file:
+                    raise UnsafeArchive(f"a file and directory share a path: {prefix!r}")
+                if prefix != old_path:
+                    raise UnsafeArchive(f"two members differ only by case: {old_path!r} and {prefix!r}")
+                if is_file:
+                    raise UnsafeArchive(f"duplicate archive member path: {prefix!r}")
+            else:
+                seen[key] = (prefix, is_file)
+
     name = archive.name.lower()
     if name.endswith(".zip"):
         zf = zipfile.ZipFile(archive)
@@ -68,7 +90,9 @@ def _members(archive: Path, max_files: int, max_total: int,
                     raise UnsafeArchive(f"symbolic link in archive: {info.filename!r}")
                 links.append(parts)
                 continue
-            if info.is_dir():
+            is_dir = info.is_dir()
+            register(parts, file=not is_dir)
+            if is_dir:
                 continue
             total += info.file_size
             out.append((parts, (zf, info), "zip"))
@@ -82,9 +106,11 @@ def _members(archive: Path, max_files: int, max_total: int,
                 links.append(parts)
                 continue
             if info.isdir():
+                register(parts, file=False)
                 continue
             if not info.isfile():
                 raise UnsafeArchive(f"special file in archive: {info.name!r}")
+            register(parts, file=True)
             total += info.size
             out.append((parts, (tf, info), "tar"))
     else:
@@ -93,12 +119,6 @@ def _members(archive: Path, max_files: int, max_total: int,
         raise UnsafeArchive(f"archive has more than {max_files} files")
     if total > max_total:
         raise UnsafeArchive(f"archive expands past the size limit of {max_total} bytes")
-    seen: dict[str, str] = {}
-    for parts, _, _ in out:
-        key = "/".join(parts).casefold()
-        if key in seen:
-            raise UnsafeArchive(f"two members differ only by case: {seen[key]!r}")
-        seen[key] = "/".join(parts)
     return out
 
 
@@ -209,14 +229,29 @@ def place(source: Source, fetched: Path | None) -> tuple[str, Path]:
             archive = Path(fetched) if fetched is not None else Path(source.location)
             _, links = extract_skipping_links(archive, staging / "t")
         digest = tree_hash(staging / "t")
-        check_id = digest[:12]
-        final = qroot / check_id
-        (qroot / f"{check_id}.links.json").write_text(json.dumps(links), encoding="utf-8")
-        if final.exists():
-            shutil.rmtree(staging, ignore_errors=True)
-            return check_id, final
-        os.replace(staging / "t", final)
-        return check_id, final
+        link_data = json.dumps(links)
+        pending_links = staging / "links.json"
+        pending_links.write_text(link_data, encoding="utf-8")
+        alternate = hashlib.sha256(f"{digest}\0{link_data}".encode()).hexdigest()
+        for check_id in (digest[:12], alternate):
+            final = qroot / check_id
+            link_record = qroot / f"{check_id}.links.json"
+            if not final.exists() and not final.is_symlink():
+                try:
+                    os.rename(staging / "t", final)
+                except OSError:
+                    if not final.exists():
+                        raise
+                else:
+                    os.replace(pending_links, link_record)
+                    return check_id, final
+            try:
+                existing_links = link_record.read_text(encoding="utf-8")
+            except (OSError, ValueError):
+                continue
+            if final.is_dir() and not final.is_symlink() and existing_links == link_data and tree_hash(final) == digest:
+                return check_id, final
+        raise UnsafeArchive("existing quarantine entries differ from the fetched files")
     finally:
         shutil.rmtree(staging, ignore_errors=True)
 

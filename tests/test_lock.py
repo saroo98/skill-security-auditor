@@ -1,4 +1,5 @@
 import json
+from concurrent.futures import ThreadPoolExecutor
 
 from helpers import FM, make
 
@@ -16,6 +17,44 @@ def test_pin_then_verify_is_clean(tmp_path):
     entry = lock.pin(s, lf, source="local")
     assert entry["static_verdict"] == "PASS" and len(entry["tree_hash"]) == 64
     assert lock.verify(lf) == []
+
+
+def test_same_name_skills_keep_independent_pins(tmp_path):
+    first = skill(tmp_path, "first")
+    second = skill(tmp_path, "second")
+    lf = tmp_path / "skill.lock.json"
+    lock.pin(first, lf)
+    lock.pin(second, lf)
+    assert lock.verify(lf) == []
+    (first / "scripts" / "a.py").write_text("print('updated')\n")
+    drift, = lock.verify(lf)
+    assert drift.name == "notes" and drift.changed_files == ["scripts/a.py"]
+    assert first.as_posix() in lock.describe(drift)[0]
+
+
+def test_v1_pin_remains_verifiable_after_v2_writes(tmp_path):
+    first = skill(tmp_path, "first")
+    second = skill(tmp_path, "second")
+    lf = tmp_path / "skill.lock.json"
+    original = lock.pin(first, lf)
+    name = original.pop("name")
+    lf.write_text(json.dumps({"schema": 1, "skills": {name: original}}), encoding="utf-8")
+    assert lock.verify(lf) == []
+    lock.pin(second, lf)
+    data = json.loads(lf.read_text(encoding="utf-8"))
+    assert data["schema"] == 2
+    assert {entry["path"] for entry in data["skills"].values()} == {first.as_posix(), second.as_posix()}
+    assert lock.verify(lf) == []
+
+
+def test_concurrent_pins_keep_both_skills(tmp_path):
+    first = skill(tmp_path, "first")
+    second = skill(tmp_path, "second")
+    lf = tmp_path / "skill.lock.json"
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        list(pool.map(lambda directory: lock.pin(directory, lf), (first, second)))
+    data = json.loads(lf.read_text(encoding="utf-8"))
+    assert {entry["path"] for entry in data["skills"].values()} == {first.as_posix(), second.as_posix()}
 
 
 def test_changed_file_is_reported_with_new_capability_and_host(tmp_path):

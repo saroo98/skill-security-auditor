@@ -285,7 +285,7 @@ class _Config:
         return self.text.count("\n", 0, idx) + 1 if idx >= 0 else None
 
     def add(self, kind: str, line: int | None, snippet: str, **detail: str | None) -> None:
-        cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split())[:300], "high",
+        cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split()), "high",
                          tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in self.caps:
             self.caps.append(cap)
@@ -351,7 +351,7 @@ class _Config:
             allow = perms.get("allow") if isinstance(perms.get("allow"), list) else []
             if any(isinstance(a, str) and (a.startswith(("Bash", "Shell")) or a == "*") for a in allow) or \
                     perms.get("defaultMode") in ("bypassPermissions", "acceptEdits"):
-                self.add("agent.config", self.line_of("permissions"), "permissions: " + json.dumps(perms)[:200])
+                self.add("agent.config", self.line_of("permissions"), "permissions: " + json.dumps(perms))
         if name == "package.json" and isinstance(data.get("scripts"), dict):
             for hook in LIFECYCLE:
                 value = data["scripts"].get(hook)

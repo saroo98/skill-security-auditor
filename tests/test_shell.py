@@ -53,9 +53,12 @@ def test_reverse_shell(s):
 
 
 @pytest.mark.parametrize("s,target", [
-    ("rm -rf ~", "home"), ("rm -rf /", "root"), ("rm -rf $HOME/x", "home"), ("rm -fr ~/", "home"),
+    ("rm -rf ~", "home"), ("rm -rf /", "root"), ("rm -rf $HOME/x", "absolute"), ("rm -fr ~/", "home"),
     ("rm -rf ./build", "project"), ("rm -rf build dist", "project"), ("rm -r -f /opt/app", "absolute"),
     ("Remove-Item -Recurse -Force C:\\", "root"), ("rm -rf \"$HOME\"", "home"), ("find . -name '*.pyc' -delete", "project"),
+    ("rm -rf /etc/", "system"), ("rm -rf /usr/bin/*", "system"),
+    ('Remove-Item -Recurse -Force "C:/Windows/System32"', "system"),
+    ("rm -rf ~/.cache/notes", "absolute"), ("rm -rf /etc/example.test/cache", "absolute"),
 ])
 def test_delete_targets(s, target):
     caps = analyze_command(s, "a", 1)

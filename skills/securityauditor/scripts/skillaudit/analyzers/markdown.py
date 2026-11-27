@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import bisect
 import re
+from dataclasses import replace
 from textwrap import dedent
 
 from ..model import CapList, Capability, FileEntry
@@ -127,7 +128,7 @@ class _Prose:
         self.caps: list[Capability] = CapList()
 
     def add(self, kind: str, line: int, snippet: str, confidence: str = "high", **detail: str) -> None:
-        cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split())[:300], confidence, tuple(sorted(detail.items())))
+        cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split()), confidence, tuple(sorted(detail.items())))
         if cap not in self.caps:
             self.caps.append(cap)
 
@@ -373,7 +374,6 @@ def _fenced(prose: _Prose, lang: str, lines: list[str], start: int) -> None:
     analyzer = {"shell": shell.analyze, "python": python_ast.analyze, "powershell": powershell.analyze,
                 "javascript": javascript.analyze}[kind]
     for cap in analyzer(sub):
-        moved = Capability(cap.kind, cap.file, (cap.line or 1) + start - 1, cap.snippet, cap.confidence,
-                           tuple(sorted(dict(cap.detail, fenced="yes").items())))
+        moved = replace(cap, line=(cap.line or 1) + start - 1, detail=tuple(sorted(dict(cap.detail, fenced="yes").items())))
         if moved not in prose.caps:
             prose.caps.append(moved)

@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 from helpers import FM, make
@@ -71,6 +72,21 @@ def test_workflow_run_lines_are_analyzed_but_not_unprompted():
     cs = caps(text, ".github/workflows/ci.yml", "yaml")
     kinds = {c.kind for c in cs}
     assert {"exec.remote", "fs.delete"} <= kinds and "unprompted" not in kinds
+
+
+def test_composite_scan_uses_quoted_environment_values():
+    action_path = Path(__file__).resolve().parents[1] / "action.yml"
+    action, problems = configs.parse_yaml(action_path.read_text(encoding="utf-8"))
+    assert not problems
+    scan = action["runs"]["steps"][0]
+    assert "\x24{{" not in scan["run"]
+    for variable, expression in {
+        "SKILLAUDIT_SCAN_PATH": "inputs.path",
+        "SKILLAUDIT_FAIL_ON": "inputs.fail-on",
+        "SKILLAUDIT_SARIF_FILE": "inputs.sarif-file",
+    }.items():
+        assert scan["env"][variable] == "\x24{{ " + expression + " }}"
+        assert f'"{chr(36)}{variable}"' in scan["run"]
 
 
 def test_allowed_tools_bash_wildcard():

@@ -157,7 +157,7 @@ class _Analyzer:
         return self.lines[line - 1].strip() if line and line <= len(self.lines) else ""
 
     def add(self, kind: str, node: ast.AST, **detail: str | None) -> None:
-        cap = Capability(kind, self.entry.rel, getattr(node, "lineno", None), self.snippet(node)[:300], "high",
+        cap = Capability(kind, self.entry.rel, getattr(node, "lineno", None), self.snippet(node), "high",
                          tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in self.caps:
             self.caps.append(cap)
@@ -394,7 +394,7 @@ class _Analyzer:
             self.add("exec.shell", call, constant="yes" if command is not None or argv_literal else "no")
             if command:
                 for cap in shell.analyze_command(command, self.entry.rel, call.lineno):
-                    self.caps.append(Capability(cap.kind, cap.file, cap.line, self.snippet(call)[:300], cap.confidence, cap.detail))
+                    self.caps.append(Capability(cap.kind, cap.file, cap.line, self.snippet(call), cap.confidence, cap.detail))
         if n == "pip.main" or (short == "main" and n.startswith("pip.")):
             self.add("pkg.install", call)
 

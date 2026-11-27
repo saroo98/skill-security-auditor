@@ -30,7 +30,8 @@ def test_install_copies_exact_bytes_and_pins(tmp_path, capsys):
     assert tree_hash(installed) == tree_hash(home() / "quarantine" / check_id)
     assert "installed notes" in out
     lock = json.loads((tmp_path / "skill.lock.json").read_text(encoding="utf-8"))
-    assert lock["skills"]["notes"]["tree_hash"]
+    entry, = lock["skills"].values()
+    assert entry["name"] == "notes" and entry["tree_hash"] == tree_hash(installed)
 
 
 def test_install_refuses_block(tmp_path, capsys):
@@ -55,6 +56,17 @@ def test_install_refuses_existing_target(tmp_path, capsys):
     (tmp_path / "skills" / "notes").mkdir(parents=True)
     assert main(["install", check_id, "--to", str(tmp_path / "skills")]) == 2
     assert "already exists" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("files", [{"README.md": "Project documentation."}, {"skills/pdf/SKILL.md": FM}])
+def test_install_requires_checked_skill_at_root(tmp_path, capsys, files):
+    repo = make(tmp_path / "repository", files)
+    verdict, check_id = check(capsys, repo)
+    destination = tmp_path / "skills"
+    assert verdict == 0
+    assert main(["install", check_id, "--to", str(destination)]) == 2
+    assert "contains SKILL.md" in capsys.readouterr().err
+    assert not destination.exists()
 
 
 def test_install_unknown_id_exits_2(tmp_path, capsys):

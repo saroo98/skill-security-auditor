@@ -18,9 +18,14 @@ runs:
   steps:
     - name: Scan
       shell: bash
+      env:
+        SKILLAUDIT_ACTION_PATH: ${{ github.action_path }}
+        SKILLAUDIT_SCAN_PATH: ${{ inputs.path }}
+        SKILLAUDIT_FAIL_ON: ${{ inputs.fail-on }}
+        SKILLAUDIT_SARIF_FILE: ${{ inputs.sarif-file }}
       run: |
         set +e
-        python "${{ github.action_path }}/skills/securityauditor/scripts/scan_skill.py" scan "${{ inputs.path }}" --format sarif --fail-on "${{ inputs.fail-on }}" > "${{ inputs.sarif-file }}"
+        python "$SKILLAUDIT_ACTION_PATH/skills/securityauditor/scripts/scan_skill.py" scan --format sarif --fail-on "$SKILLAUDIT_FAIL_ON" -- "$SKILLAUDIT_SCAN_PATH" > "$SKILLAUDIT_SARIF_FILE"
         echo "exit_code=$?" >> "$GITHUB_ENV"
     - name: Upload SARIF
       if: always()

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-RULESET_VERSION = "9"  # bump whenever a check's behavior changes; it keys the verdict cache
+RULESET_VERSION = "10"  # bump whenever a check's behavior changes; it keys the verdict cache
 
 
 @dataclass(frozen=True)
@@ -20,7 +20,7 @@ _TABLE: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("env-to-network", "critical", "The whole environment is sent over the network", ("AST01",)),
     ("remote-exec", "critical", "Downloads code and runs it", ("AST01", "AST02")),
     ("reverse-shell", "critical", "Opens a remote shell", ("AST01",)),
-    ("delete-root-or-home", "critical", "Deletes the home directory or the drive root", ("AST01",)),
+    ("delete-root-or-home", "critical", "Deletes a system folder, the home directory, or the drive root", ("AST01",)),
     ("hidden-instruction", "critical", "Instructions hidden from a human reader", ("AST01", "AST04")),
     ("reviewer-directed", "critical", "Text addresses the reviewer or asks for a verdict", ("AST01", "AST08")),
     ("unprompted-unanalyzed", "high", "Runs without asking, and the command could not be checked", ("AST06",)),

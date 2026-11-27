@@ -49,6 +49,38 @@ def test_rejects_unsafe_member_names(tmp_path, name):
         extract(arc, tmp_path / "out")
 
 
+@pytest.mark.parametrize("name", ["CONIN$", "conout$.txt", "COM\u00b9.log", "LPT\u00b2"])
+def test_rejects_windows_device_names_without_opening_them(name):
+    with pytest.raises(UnsafeArchive, match="reserved Windows name"):
+        quarantine._check_name(name)
+
+
+@pytest.mark.parametrize("members", [
+    {"entry": b"text", "entry/file.txt": b"data"},
+    {"entry/file.txt": b"data", "entry": b"text"},
+    {"entry/": b"", "entry": b"text"},
+])
+def test_rejects_file_and_directory_at_the_same_archive_path(tmp_path, members):
+    arc = make_zip(tmp_path / "a.zip", members)
+    destination = tmp_path / "out"
+    with pytest.raises(UnsafeArchive, match="file and directory"):
+        extract(arc, destination)
+    assert not destination.exists()
+
+
+def test_rejects_tar_directory_conflicting_with_file(tmp_path):
+    arc = tmp_path / "archive.tar.gz"
+    with tarfile.open(arc, "w:gz") as tar:
+        directory = tarfile.TarInfo("top/entry")
+        directory.type = tarfile.DIRTYPE
+        tar.addfile(directory)
+        nested_file = tarfile.TarInfo("top/entry")
+        nested_file.size = 1
+        tar.addfile(nested_file, io.BytesIO(b"x"))
+    with pytest.raises(UnsafeArchive, match="file and directory"):
+        extract(arc, tmp_path / "out")
+
+
 def test_rejects_backslash_in_tar_member(tmp_path):
     # zipfile on Windows already turns backslashes into "/", so tar is the real case
     arc = make_tar(tmp_path / "a.tar.gz", {"ok.md": b"1", "a" + chr(92) + "b": b"x"}, top="")
@@ -141,6 +173,18 @@ def test_place_is_idempotent(tmp_path):
     a = place(Source("url", "u", "", "u", None), arc)
     b = place(Source("url", "u", "", "u", None), arc)
     assert a == b
+
+
+def test_place_checks_full_content_before_reusing_quarantine(tmp_path):
+    archive = make_tar(tmp_path / "a.tar.gz", {"SKILL.md": b"# Checked skill"})
+    source = Source("url", "u", "", "u", None)
+    original_id, original = place(source, archive)
+    (original / "SKILL.md").write_bytes(b"# Different contents")
+    new_id, fresh = place(source, archive)
+    assert new_id != original_id and fresh != original
+    assert (fresh / "SKILL.md").read_bytes() == b"# Checked skill"
+    assert (original / "SKILL.md").read_bytes() == b"# Different contents"
+    assert place(source, archive) == (new_id, fresh)
 
 
 def test_cache_roundtrip(tmp_path):

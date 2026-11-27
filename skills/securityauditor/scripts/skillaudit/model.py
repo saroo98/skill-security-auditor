@@ -7,12 +7,21 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
-from .sanitize import sanitize
+from .sanitize import escape_invisible, sanitize
 
 SEVERITIES: tuple[str, ...] = ("info", "low", "medium", "high", "critical")
 SEVERITY_RANK: dict[str, int] = {s: i for i, s in enumerate(SEVERITIES)}
 VERDICTS: tuple[str, ...] = ("PASS", "REVIEW", "BLOCK")
 VERDICT_RANK: dict[str, int] = {v: i for i, v in enumerate(VERDICTS)}
+_SNIPPET_LIMIT = 300
+
+
+def _normalize_evidence(evidence: str) -> str:
+    return " ".join(escape_invisible(evidence).split())
+
+
+def _hash_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8", "surrogatepass")).hexdigest()
 
 
 def verdict_for(severities: Iterable[str]) -> str:
@@ -54,6 +63,15 @@ class Capability:
     snippet: str
     confidence: str = "high"
     detail: tuple[tuple[str, str], ...] = ()
+    evidence_digest: str | None = None
+
+    def __post_init__(self) -> None:
+        if len(self.snippet) <= _SNIPPET_LIMIT:
+            return
+        normalized = _normalize_evidence(self.snippet)
+        if len(normalized) > _SNIPPET_LIMIT:
+            object.__setattr__(self, "evidence_digest", _hash_text(normalized))
+        object.__setattr__(self, "snippet", normalized[:_SNIPPET_LIMIT])
 
     def get(self, key: str, default: str | None = None) -> str | None:
         return dict(self.detail).get(key, default)
@@ -111,14 +129,20 @@ class ScanResult:
     errors: list[str] = field(default_factory=list)
 
 
-def fingerprint(check_id: str, file: str, evidence: str) -> str:
-    normalized = " ".join(evidence.split())
-    digest = hashlib.sha256(f"{check_id}\0{file}\0{normalized}".encode("utf-8", "surrogatepass"))
-    return digest.hexdigest()[:16]
+def fingerprint(check_id: str, file: str, evidence: str, *, evidence_digest: str | None = None) -> str:
+    if evidence_digest is None:
+        normalized = _normalize_evidence(evidence)
+        if len(normalized) > _SNIPPET_LIMIT:
+            evidence_digest = _hash_text(normalized)
+    if evidence_digest is not None:
+        normalized = "\0sha256:" + evidence_digest
+    return _hash_text(f"{check_id}\0{file}\0{normalized}")[:16]
 
 
-def make_finding(check_id: str, severity: str, file: str, line: int | None, message: str, evidence: str) -> Finding:
+def make_finding(check_id: str, severity: str, file: str, line: int | None, message: str, evidence: str,
+                 *, evidence_digest: str | None = None) -> Finding:
     if severity not in SEVERITY_RANK:
         raise ValueError(f"unknown severity: {severity}")
     clean = sanitize(evidence)
-    return Finding(check_id, severity, file, line, message, clean, fingerprint(check_id, file, clean))
+    return Finding(check_id, severity, file, line, message, clean,
+                   fingerprint(check_id, file, evidence, evidence_digest=evidence_digest))

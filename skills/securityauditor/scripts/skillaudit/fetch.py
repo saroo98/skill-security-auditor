@@ -4,11 +4,17 @@ from __future__ import annotations
 
 import os
 import re
+import tempfile
+import time
 import urllib.error
 import urllib.request
+from collections.abc import Generator
+from contextlib import closing
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import urlparse
+from queue import Empty, Full, Queue
+from threading import Event, Thread
+from urllib.parse import ParseResult, urlparse
 
 MAX_BYTES = 20 * 1024 * 1024
 CHUNK = 64 * 1024
@@ -55,6 +61,18 @@ def _github(owner: str, repo: str, rest: list[str], display: str) -> Source:
     return Source("url", _codeload(owner, repo, "HEAD"), "", display, owner_repo)
 
 
+def _parse_https(address: str) -> ParseResult:
+    try:
+        parsed = urlparse(address)
+        if not parsed.hostname or parsed.port == 0 or any(c.isspace() or ord(c) < 32 for c in address):
+            raise ValueError
+    except ValueError:
+        raise FetchError("invalid HTTPS address") from None
+    if parsed.username is not None or parsed.password is not None:
+        raise FetchError("credentials in HTTPS addresses are not supported")
+    return parsed
+
+
 def resolve(address: str) -> Source:
     address = address.strip()
     path = Path(address)
@@ -65,10 +83,10 @@ def resolve(address: str) -> Source:
             return Source("archive", str(path), "", address, None)
         raise FetchError(f"not a directory or a .zip/.tar.gz archive: {address}")
     if address.lower().startswith("http://"):
-        raise FetchError(f"only https addresses are accepted: {address}")
+        raise FetchError("only https addresses are accepted")
     if address.lower().startswith("https://"):
-        parsed = urlparse(address)
-        host = (parsed.hostname or "").lower()
+        parsed = _parse_https(address)
+        host = parsed.hostname
         parts = [p for p in parsed.path.split("/") if p]
         if host in ("github.com", "www.github.com") and len(parts) >= 2:
             return _github(parts[0], parts[1], parts[2:], address)
@@ -94,47 +112,94 @@ def default_opener() -> urllib.request.OpenerDirector:
     return urllib.request.build_opener(_HttpsOnlyRedirect())
 
 
+def _download_chunks(opener, request: urllib.request.Request, timeout: float) -> Generator[bytes, None, None]:
+    """Apply one deadline across connection, redirects and reads. Only the caller writes to disk."""
+    deadline = time.monotonic() + timeout
+    received: Queue[bytes | Exception | None] = Queue(maxsize=2)
+    cancelled = Event()
+
+    def send(item: bytes | Exception | None) -> bool:
+        while not cancelled.is_set():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return False
+            try:
+                received.put(item, timeout=min(remaining, 0.1))
+                return True
+            except Full:
+                continue
+        return False
+
+    def read_response() -> None:
+        url = request.full_url
+        try:
+            with opener.open(request, timeout=timeout) as response:
+                final = response.geturl() if hasattr(response, "geturl") else url
+                if not str(final).lower().startswith("https://"):
+                    raise FetchError(f"refused redirect to a non-https address: {final} (from {url})")
+                read = getattr(response, "read1", response.read)
+                while not cancelled.is_set():
+                    chunk = read(CHUNK)
+                    if not chunk or not send(chunk):
+                        break
+        except Exception as exc:
+            send(exc)
+        else:
+            send(None)
+
+    Thread(target=read_response, name="skillaudit-download", daemon=True).start()
+    try:
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError("overall download deadline expired")
+            try:
+                item = received.get(timeout=remaining)
+            except Empty:
+                raise TimeoutError("overall download deadline expired") from None
+            if item is None:
+                return
+            if isinstance(item, Exception):
+                raise item
+            yield item
+    finally:
+        cancelled.set()
+
+
 def download(url: str, dest: Path, *, max_bytes: int = MAX_BYTES, timeout: float = 30.0, opener=None,
              source: Source | None = None) -> Path:
     if not url.lower().startswith("https://"):
         raise FetchError(f"only https addresses are accepted: {url}")
+    _parse_https(url)
     opener = opener or default_opener()
     request = urllib.request.Request(url, headers={"User-Agent": "skillaudit"})
     dest = Path(dest)
     dest.parent.mkdir(parents=True, exist_ok=True)
-    tmp = dest.with_name(dest.name + ".part")
+    tmp: Path | None = None
     try:
-        with opener.open(request, timeout=timeout) as response:
-            final = response.geturl() if hasattr(response, "geturl") else url
-            if not str(final).lower().startswith("https://"):
-                raise FetchError(f"refused redirect to a non-https address: {final} (from {url})")
+        with tempfile.NamedTemporaryFile(dir=dest.parent, suffix=".part", delete=False) as out:
+            tmp = Path(out.name)
             total = 0
-            with open(tmp, "wb") as out:
-                while True:
-                    chunk = response.read(CHUNK)
-                    if not chunk:
-                        break
+            with closing(_download_chunks(opener, request, timeout)) as chunks:
+                for chunk in chunks:
                     total += len(chunk)
                     if total > max_bytes:
                         raise FetchError(f"download larger than {max_bytes // (1024 * 1024)} MB: {url}")
                     out.write(chunk)
-    except FetchError:
-        _remove(tmp)
-        raise
+        os.replace(tmp, dest)
     except urllib.error.HTTPError as exc:
-        _remove(tmp)
         if exc.code == 404 and source is not None and source.ambiguous_ref:
             raise FetchError(f'ref not found; if the branch name contains "/", pass the archive address instead: {url}') from None
         if exc.code == 404:
             raise FetchError(f"not found (404); the repository may be private or the address wrong: {url}") from None
         raise FetchError(f"server answered {exc.code} {exc.reason}: {url}") from None
     except urllib.error.URLError as exc:
-        _remove(tmp)
         raise FetchError(f"could not connect ({_one_line(exc.reason)}): {url}") from None
-    except (TimeoutError, OSError) as exc:
-        _remove(tmp)
+    except (OSError, ValueError) as exc:
         raise FetchError(f"download failed ({_one_line(exc) or type(exc).__name__}): {url}") from None
-    os.replace(tmp, dest)
+    finally:
+        if tmp is not None:
+            _remove(tmp)
     return dest
 
 

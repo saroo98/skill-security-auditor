@@ -1,4 +1,5 @@
 import io
+import threading
 import urllib.error
 
 import pytest
@@ -83,6 +84,32 @@ def test_download_stops_at_cap(tmp_path):
     with pytest.raises(FetchError, match="20 MB"):
         download(U, tmp_path / "a", opener=FakeOpener(b"x" * (21 * 1024 * 1024)))
     assert not (tmp_path / "a").exists()
+
+
+@pytest.mark.parametrize("phase", ["opening", "reading"])
+def test_download_has_an_overall_deadline(tmp_path, phase):
+    release = threading.Event()
+
+    class SlowResponse(FakeResponse):
+        def read(self, size=-1):
+            if phase == "reading":
+                release.wait(0.2)
+            return super().read(size)
+
+        read1 = read
+
+    class SlowOpener:
+        def open(self, request, timeout):
+            if phase == "opening":
+                release.wait(0.2)
+            return SlowResponse(b"archive", U)
+
+    try:
+        with pytest.raises(FetchError, match="overall download deadline"):
+            download(U, tmp_path / "archive", timeout=0.05, opener=SlowOpener())
+        assert not list(tmp_path.iterdir())
+    finally:
+        release.set()
 
 
 def test_redirect_to_http_is_refused(tmp_path):
