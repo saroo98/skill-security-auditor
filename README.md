@@ -186,6 +186,8 @@ python skills/securityauditor/scripts/scan_skill.py verify
 
 **GitHub Action**: scans, writes SARIF and uploads it to code scanning.
 
+The SARIF upload uses CodeQL Action v4 and requires a runner with Node.js 24 support. [GitHub's runner requirements](https://github.blog/changelog/2025-10-28-upcoming-deprecation-of-codeql-action-v3/)
+
 ```yaml
 - uses: saroo98/skill-security-auditor@main
   with:

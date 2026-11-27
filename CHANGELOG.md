@@ -12,6 +12,7 @@
 - Fingerprint full evidence before clipping report previews. Baselines from earlier versions may need new fingerprints for long evidence.
 - Document the current Codex user skill directory.
 - Declare the MIT license using SPDX package metadata.
+- Update GitHub workflows and the SARIF uploader to Node.js 24 action versions.
 
 ## 0.9.0
 
