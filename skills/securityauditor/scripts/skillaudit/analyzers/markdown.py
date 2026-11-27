@@ -37,6 +37,7 @@ CONCEAL = (
     re.compile(r"\b(silently|quietly|secretly|covertly|discreetly)\s+(append|send|upload|copy|run|execute|install|read|include|add|"
                r"delete|remove|modify|write|post|forward|attach|exfiltrate|download|fetch)\b", I),
 )
+QUIET_PREDICATE = re.compile(r"\b(?:(?P<actor>you|agents?|assistants?)\s+)?(?P<verb>not|would|will|may|might|could)\s*$", I)
 NOASK = re.compile(r"\bwithout\s+(asking|confirmation|confirming|approval|permission|prompting|consent|checking with|telling)\b", I)
 FLAGS = re.compile(r"--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b|\bbypassPermissions\b|"
                    r"--full-auto\b|--ask-for-approval\s+never\b", I)
@@ -52,19 +53,28 @@ INSTALL_EXTRA = (
                r"appimage|scr|vbs)\b)", I),
     re.compile(r"\bdownload\s+and\s+(run|execute|install|open)\b[^.]{0,60}https?://", I),
 )
+# A location introduced by "find in" is a source. Look past it for the destination.
 EXFIL = re.compile(
     r"\b(send|upload|post|append|include|attach|forward|exfiltrate|copy|transmit|share|leak)\b[^;]{0,60}?\b(secrets?|credentials?|"
-    r"tokens?|passwords?|private key files?|private keys?|api keys?|\.env|ssh|cookies|\.aws)\b[^;]{0,60}?\b(to|into|with|in)\b", I)
+    r"tokens?|passwords?|private key files?|private keys?|api keys?|\.env|ssh|cookies|\.aws)\b"
+    r"[^;]{0,60}?\b(?P<relation>to|into|with|(?<!\bfind )in)\b", I)
 EXFIL_BENIGN = re.compile(r"\b(header|authorization|bearer|environment variable|public key)\b", I)
+LOCAL_ENVIRONMENT = re.compile(r"\s+(?:(?:the|your|its)\s+)?(?:local\s+)?environment variables?\s*[.!?]?\s*", I)
 IMPERATIVE_LEAD = re.compile(r"^\s*(?:(?:then|and|also|now|from now on|always|please|quietly|silently|secretly|covertly)"
                              r"[, ]+)*(?:you\s+(?:must|should|will|need to|can)\s+)?$", I)
 REVIEWER_WHO = re.compile(
-    r"\b(scanners?|auditors?|reviewers?|security (?:tools?|checks?|scans?|reviews?)|scanning agent|reviewing agent|ai (?:reviewing|"
-    r"scanning|auditing)|models? (?:reviewing|scanning)|if you are (?:an ai|a model|an llm|an assistant|a scanner|reviewing))\b", I)
+    r"\b((?:security )?(?:scanners?|auditors?|reviewers?)|security (?:tools?|checks?|scans?|reviews?)|scanning agent|"
+    r"reviewing agent|ai (?:reviewing|scanning|auditing)|models? (?:reviewing|scanning)|"
+    r"if you are (?:an ai|a model|an llm|an assistant|a scanner|reviewing))\b", I)
+REVIEWER_ADDRESS = re.compile(
+    r"\s*(?:>\s*)?(?:(?:note|message|instructions?)\s+)?(?:(?:to|for|dear)\s+)?(?:(?:any|all|the|a)\s+)?", I)
+REVIEWER_REQUEST = re.compile(r"[:,]|\b(?:must|should|shall|please)\b", I)
 REVIEWER_WHAT = re.compile(r"\b(mark|report|classify|rate|consider|respond|output|answer|reply|say|treat|label|flag)\b[^.]{0,40}?"
                            r"\b(safe|benign|clean|pass|no (?:issues|findings|problems|risks?)|trusted|harmless|already audited|approved)\b", I)
-REVIEWER_PASS = re.compile(r"(?i:\b(reply|respond|answer|output|say|print|return|antworte\w*|responde\w*|r[ée]ponds?|rispondi|"
-                           r"antwoord)\b)[^.\n]{0,40}\bPASS\b(?!\s*[/|,]|\s+or\s+FAIL)")
+REVIEWER_PASS = re.compile(
+    r"(?:^|[,:;])\s*(?i:(?:(?:then|and|also|now|please|bitte|por favor)\s+)*"
+    r"(?:reply|respond|answer|output|say|print|return|antworte\w*|responde\w*|r[ée]ponds?|rispondi|antwoord)\b)"
+    r"[^.\n]{0,40}\bPASS\b(?!\s*[/|,]|\s+or\s+FAIL)")
 DESCRIPTIVE = (
     re.compile(r"\b(tells|telling|tries to|trying to|attempts? to|attempting to|asks|asking|instructs|instructing|causes|causing|"
                r"makes|making|tricks|tricking|convinces|convincing|gets|getting)\b[^.]{0,40}?\b(agents?|models?|assistants?|ais?|"
@@ -101,6 +111,15 @@ def _descriptive(prefix: str) -> bool:
     return any(p.search(prefix) for p in DESCRIPTIVE)
 
 
+def _verdict_request(text: str) -> re.Match | None:
+    reviewer = REVIEWER_WHO.search(text)
+    if reviewer and REVIEWER_ADDRESS.fullmatch(text, endpos=reviewer.start()):
+        request = REVIEWER_WHAT.search(text, reviewer.end())
+        if request and REVIEWER_REQUEST.search(text, reviewer.end(), request.start()):
+            return request
+    return REVIEWER_PASS.search(text)
+
+
 class _Prose:
     def __init__(self, entry: FileEntry) -> None:
         self.entry = entry
@@ -134,8 +153,12 @@ class _Prose:
             for m in OVERRIDE.finditer(clause):
                 if not UNTRUSTED_SOURCE.search(clause[m.start(): m.end() + 40]):
                     hit("instruction.override", m, cstart)
-            for index, pat in enumerate(CONCEAL):
+            for pat in CONCEAL:
                 for m in pat.finditer(clause):
+                    if pat is CONCEAL[-1]:
+                        predicate = QUIET_PREDICATE.search(clause, endpos=m.start())
+                        if predicate and (predicate.group("verb").lower() == "not" or not predicate.group("actor")):
+                            continue
                     hit("instruction.conceal", m, cstart, negatable=pat is CONCEAL[-1])
             for m in NOASK.finditer(clause):
                 before = text[: cstart + m.start()]
@@ -152,13 +175,14 @@ class _Prose:
                     hit("instruction.install-extra", m, cstart)
             if not EXFIL_BENIGN.search(clause):
                 for m in EXFIL.finditer(clause):
+                    if m.group("relation").lower() in ("to", "into") and LOCAL_ENVIRONMENT.fullmatch(clause, m.end()):
+                        continue
                     if IMPERATIVE_LEAD.match(clause[: m.start()]):
                         hit("instruction.override", m, cstart, what="exfil")
-        if (REVIEWER_WHO.search(text) and REVIEWER_WHAT.search(text)) or REVIEWER_PASS.search(text):
-            m = REVIEWER_WHO.search(text) or REVIEWER_PASS.search(text)
-            if not _descriptive(context + " " + text[: m.start()]):
-                self.add("instruction.reviewer", line, text)
-                found.append("instruction.reviewer")
+        request = _verdict_request(text)
+        if request and not _descriptive(context + " " + text[: request.start()]):
+            self.add("instruction.reviewer", line, text)
+            found.append("instruction.reviewer")
         return found
 
     def run_lines(self, lines: list[tuple[int, str]], hidden: bool = False) -> str:
