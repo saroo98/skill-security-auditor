@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import policy
-from .analyzers import generic, javascript, legacy, powershell, python_ast, shell
+from .analyzers import generic, hidden, javascript, legacy, markdown, powershell, python_ast, shell
 from .discovery import discover
 from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, verdict_for
 from .quarantine import tree_hash
@@ -21,6 +21,7 @@ ANALYZERS: dict[str, Callable[[FileEntry], list[Capability]]] = {
     "javascript": javascript.analyze,
     "powershell": powershell.analyze,
     "other-source": generic.analyze,
+    "markdown": markdown.analyze,
 }
 _NAME = re.compile(r"^name:\s*['\"]?([^'\"\n]+?)['\"]?\s*$", re.MULTILINE)
 
@@ -43,10 +44,14 @@ def _unit_of(rel: str, unit_roots: list[str]) -> str | None:
 
 
 def analyze_entry(entry: FileEntry) -> list[Capability]:
-    analyzer = ANALYZERS.get(entry.kind)
-    if analyzer is None or entry.text is None:
+    if entry.text is None:
         return []
-    return analyzer(entry)
+    analyzer = ANALYZERS.get(entry.kind)
+    caps = analyzer(entry) if analyzer else []
+    for cap in hidden.analyze(entry):
+        if cap not in caps:
+            caps.append(cap)
+    return caps
 
 
 def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
