@@ -385,3 +385,317 @@ skill = "trailofbits__skills/plugins/testing-handbook-skills/skills/libafl"
 check_id = "remote-exec"
 label = "justified"
 reason = "downloads a script, makes it executable and runs it"
+
+# Additional blocks reviewed from the second scan on 2026-11-27 (ruleset 7).
+
+[[entry]]
+skill = "getsentry__skills/skills/gh-review-requests"
+check_id = "install-extra-component"
+label = "false-alarm"
+reason = "Lists uv as a prerequisite and links to its installation guide."
+
+[[entry]]
+skill = "google__skills/skills/cloud/cloud-run-alert-configuration"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Describes how users can customize Terraform alert parameters."
+
+[[entry]]
+skill = "mongodb__agent-skills/plugins/mongodb-atlas/skills/mongodb-qe-size-estimation"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "Adds totals to a temporary worksheet whose path and contents are disclosed to the user."
+
+[[entry]]
+skill = "mongodb__agent-skills/plugins/mongodb/skills/mongodb-qe-size-estimation"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "Adds totals to a temporary worksheet whose path and contents are disclosed to the user."
+
+[[entry]]
+skill = "mongodb__agent-skills/skills/mongodb-qe-size-estimation"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "Adds totals to a temporary worksheet whose path and contents are disclosed to the user."
+
+[[entry]]
+skill = "posthog__skills/skills/omnibus/creating-an-endpoint"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "Describes a server rejecting ineligible queries and asks the agent to explain the outcome."
+
+[[entry]]
+skill = "posthog__skills/skills/omnibus/designing-replay-vision-scanners"
+check_id = "reviewer-directed"
+label = "false-alarm"
+reason = "Describes testing a replay analysis prompt before deploying it."
+
+[[entry]]
+skill = "posthog__skills/skills/omnibus/instrument-integration"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Shows how to pass project configuration to the analytics SDK."
+
+[[entry]]
+skill = "posthog__skills/skills/omnibus/prioritizing-my-inbox"
+check_id = "reviewer-directed"
+label = "false-alarm"
+reason = "Uses suggested report reviewers as an inbox ranking feature."
+
+[[entry]]
+skill = "posthog__skills/skills/omnibus/signals-scout-logs"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Quotes examples to illustrate why log contents must be read as data."
+
+[[entry]]
+skill = "posthog__skills/skills/omnibus/signals-scout-mcp-tool-calls"
+check_id = "reviewer-directed"
+label = "false-alarm"
+reason = "Describes a scratchpad key for the owner of an open analytics report."
+
+[[entry]]
+skill = "posthog__skills/skills/omnibus/signals-scout-tasks"
+check_id = "reviewer-directed"
+label = "false-alarm"
+reason = "Describes scratchpad keys and quotes an example of untrusted task text."
+
+[[entry]]
+skill = "stripe__ai/providers/agent-plugins/plugin/skills/stripe-apps"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains setting the app's Stripe webhook signing secret in its environment."
+
+[[entry]]
+skill = "stripe__ai/providers/antigravity/plugin/skills/stripe-apps"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains setting the app's Stripe webhook signing secret in its environment."
+
+[[entry]]
+skill = "stripe__ai/providers/claude/plugin/skills/stripe-apps"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains setting the app's Stripe webhook signing secret in its environment."
+
+[[entry]]
+skill = "stripe__ai/providers/cursor/plugin/skills/stripe-apps"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains setting the app's Stripe webhook signing secret in its environment."
+
+[[entry]]
+skill = "stripe__ai/providers/gemini/plugin/skills/stripe-apps"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains setting the app's Stripe webhook signing secret in its environment."
+
+[[entry]]
+skill = "stripe__ai/providers/grok/plugin/skills/stripe-apps"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains setting the app's Stripe webhook signing secret in its environment."
+
+[[entry]]
+skill = "stripe__ai/skills/stripe-apps"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains setting the app's Stripe webhook signing secret in its environment."
+
+[[entry]]
+skill = "awslabs__agent-plugins/plugins/aws-transform/skills/aws-transform"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "cloudflare__skills/skills/cloudflare"
+check_id = "instruction-external"
+label = "false-alarm"
+reason = "Provides API reference links for selecting binding types and methods."
+
+[[entry]]
+skill = "cloudflare__skills/skills/turnstile-spin"
+check_id = "obfuscation"
+label = "false-alarm"
+reason = "Uses jq expressions to validate the shape of a Turnstile widget response."
+
+[[entry]]
+skill = "expo__skills/.claude/skills/expo-skill-eval"
+check_id = "permission-bypass"
+label = "justified"
+reason = "Offers running agent subprocesses with permission checks disabled."
+
+[[entry]]
+skill = "getsentry__skills/skills/skill-scanner"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Uses quoted injection examples in a detection guide and links to a prerequisite's documentation."
+
+[[entry]]
+skill = "google__skills/skills/cloud/agent-platform-agent-registry"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "Reads local CLI defaults and assembles ordinary arguments for cloud endpoints."
+
+[[entry]]
+skill = "google__skills/skills/cloud/agent-platform-alert-configuration"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "Requires asking the user about notification channels in the final response."
+
+[[entry]]
+skill = "google__skills/skills/cloud/agent-platform-migrate-from-ai-studio"
+check_id = "remote-exec"
+label = "justified"
+reason = "Runs a downloaded credential setup script via shell process substitution."
+
+[[entry]]
+skill = "google__skills/skills/cloud/cloud-monitoring-alert-configuration"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Describes how users can customize Terraform alert parameters."
+
+[[entry]]
+skill = "google__skills/skills/cloud/cloud-network-insights"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Describes copying a script to a user-approved proxy and keeping its token on standard input."
+
+[[entry]]
+skill = "google__skills/skills/cloud/developing-genkit-dart"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "google__skills/skills/cloud/developing-genkit-go"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "google__skills/skills/cloud/google-cloud-release-radar"
+check_id = "delete-root-or-home"
+label = "false-alarm"
+reason = "Deletes only the skill's watchlist and cache directory when the user requests a reset."
+
+[[entry]]
+skill = "hashicorp__agent-skills/plugins/terraform/skills/terraform-policy"
+check_id = "instruction-conceal"
+label = "false-alarm"
+reason = "Explains how test resources can unintentionally select multiple policies."
+
+[[entry]]
+skill = "posthog__skills/skills/omnibus/instrument-product-analytics"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Shows how to pass project configuration to the analytics SDK."
+
+[[entry]]
+skill = "posthog__skills/skills/posthog/all/skills/integration-javascript_web"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains initializing the vendor SDK with its project token and host."
+
+[[entry]]
+skill = "posthog__skills/skills/posthog/all/skills/omnibus-instrument-integration"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains initializing the vendor SDK with its project token and host."
+
+[[entry]]
+skill = "posthog__skills/skills/posthog/integration/skills/javascript_web"
+check_id = "instruction-override"
+label = "false-alarm"
+reason = "Explains initializing the vendor SDK with its project token and host."
+
+[[entry]]
+skill = "posthog__skills/skills/team/customer-success/impersonation-toolkit"
+check_id = "obfuscation"
+label = "justified"
+reason = "Merges tool preapprovals into agent permissions shared by customer impersonation sessions."
+
+[[entry]]
+skill = "stripe__ai/providers/agent-plugins/plugin/skills/stripe-directory"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/agent-plugins/plugin/skills/stripe-projects"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/antigravity/plugin/skills/stripe-directory"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/antigravity/plugin/skills/stripe-projects"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/claude/plugin/skills/stripe-directory"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/claude/plugin/skills/stripe-projects"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/cursor/plugin/skills/stripe-directory"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/cursor/plugin/skills/stripe-projects"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/gemini/plugin/skills/stripe-directory"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/gemini/plugin/skills/stripe-projects"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/grok/plugin/skills/stripe-directory"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/providers/grok/plugin/skills/stripe-projects"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/skills/stripe-directory"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
+
+[[entry]]
+skill = "stripe__ai/skills/stripe-projects"
+check_id = "remote-exec"
+label = "justified"
+reason = "Pipes a downloaded installer directly into a shell."
