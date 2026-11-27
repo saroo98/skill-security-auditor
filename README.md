@@ -108,12 +108,15 @@ Findings can be suppressed only by the person running the scan: `--config` with 
 
 Results on 2026-11-27, model stages off for every scanner (full table: [bench/results/RESULTS.md](bench/results/RESULTS.md)):
 
-| Scanner | Static-scope attacks caught | Benign blocked |
+| Scanner | Static-scope attacks caught | Benign cases blocked |
 | --- | --- | --- |
 | skill-security-auditor 0.9.0 | 50/50 | 0/20 |
+| Cisco skill-scanner 2.3.2 | 25/49 | 4/20 |
 | SkillSpector 2.13.7 | 11/49 | 1/20 |
 
-Read these numbers with care. Most cases were written by this project's authors while building its checks, so its own score on them is optimistic. The fairer measure of false alarms is a corpus of real, reputable skills (`python -m bench.fetch_real` and `--real`), which is not yet published.
+Read the corpus numbers with care: most cases were written by this project's authors while building its checks, so its own score on them is optimistic.
+
+The fairer measure is real skills. On 1,787 skills from eleven public repositories pinned to a commit (Anthropic, OpenAI, Microsoft, GitHub, NVIDIA, Hugging Face, Vercel, Trail of Bits, obra/superpowers, K-Dense; listed in `bench/sources.toml`), this tool gives PASS to 73.1%, REVIEW to 23.2% and BLOCK to 3.6%. Every BLOCK was read by hand (`bench/triage.toml`): 22 are worth stopping for (for example `curl ... | bash` installers, instructions to fetch and follow a remote page, adding a remote MCP server, an injection test fixture), and 43 are false alarms, 2.4% of all skills. Reproduce with `python -m bench.fetch_real <folder>` and `python -m bench.run --real <folder>`.
 
 Corpus rules: every case cites a public source for its technique, no case is removed to improve a number (this project's included), and maintainers of a scanner are told about its misses before results that name it are published.
 
