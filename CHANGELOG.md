@@ -11,6 +11,7 @@
 - Pass GitHub Action inputs through quoted environment variables and treat deletion of core system folders as critical.
 - Fingerprint full evidence before clipping report previews. Baselines from earlier versions may need new fingerprints for long evidence.
 - Document the current Codex user skill directory.
+- Declare the MIT license using SPDX package metadata.
 
 ## 0.9.0
 
