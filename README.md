@@ -118,7 +118,7 @@ Read the corpus numbers with care: most cases were written by this project's aut
 
 The fairer measure is real skills. On 1,787 skills from eleven public repositories pinned to a commit (Anthropic, OpenAI, Microsoft, GitHub, NVIDIA, Hugging Face, Vercel, Trail of Bits, obra/superpowers, K-Dense; listed in `bench/sources.toml`), this tool gives PASS to 73.1%, REVIEW to 23.2% and BLOCK to 3.6%. Every BLOCK was read by hand (`bench/triage.toml`): 22 are worth stopping for (for example `curl ... | bash` installers, instructions to fetch and follow a remote page, adding a remote MCP server, an injection test fixture), and 43 are false alarms, 2.4% of all skills. Reproduce with `python -m bench.fetch_real <folder>` and `python -m bench.run --real <folder>`.
 
-Corpus rules: every case cites a public source for its technique, no case is removed to improve a number (this project's included), and maintainers of a scanner are told about its misses before results that name it are published.
+Corpus rules: every case cites a public source for its technique and no case is removed to improve a number, this project's included.
 
 ## Limits
 

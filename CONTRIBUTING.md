@@ -28,7 +28,7 @@ Never remove or weaken a case to improve a number, this project's included.
 
 ## Adding a scanner adapter
 
-Add a module to `bench/adapters/` exposing `ADAPTER` with `available()`, `version()` and `scan(path)`, register it in `bench/adapters/__init__.py`, document the exact command it runs, and test the mapping with a faked subprocess. Tell the scanner's maintainers about misses before publishing results that name it.
+Add a module to `bench/adapters/` exposing `ADAPTER` with `available()`, `version()` and `scan(path)`, register it in `bench/adapters/__init__.py`, document the exact command it runs, and test the mapping with a faked subprocess.
 
 ## Reporting false positives
 
