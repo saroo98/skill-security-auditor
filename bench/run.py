@@ -12,7 +12,7 @@ import tomllib
 from pathlib import Path
 
 from bench.adapters import AdapterResult, get
-from bench.corpus import BENCH, Case, load_cases, load_classes, materialize
+from bench.corpus import BENCH, Case, load_cases, load_classes, materialize, scan_in_memory
 
 THRESHOLDS = BENCH / "thresholds.toml"
 RANK = {"PASS": 0, "REVIEW": 1, "BLOCK": 2}
@@ -125,6 +125,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default=str(BENCH / "results"))
     parser.add_argument("--date", default="")
     parser.add_argument("--check-thresholds", action="store_true")
+    parser.add_argument("--include-av-sensitive", action="store_true",
+                        help="also write cases that antivirus software flags (for CI runners without antivirus)")
     args = parser.parse_args(argv)
     scanners = args.scanners or ["self"]
 
@@ -132,7 +134,7 @@ def main(argv: list[str] | None = None) -> int:
     classes = load_classes()
     workdir = Path(tempfile.mkdtemp(prefix="skillaudit-bench-"))
     try:
-        paths = materialize(cases, workdir)
+        paths = materialize(cases, workdir, skip_av_sensitive=not args.include_av_sensitive)
         scores, versions = {}, {}
         for name in scanners:
             try:
@@ -144,7 +146,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"skipping {name}: not installed", file=sys.stderr)
                 continue
             versions[name] = adapter.version()
-            results = {c.id: adapter.scan(paths[c.id]) for c in cases}
+            results = {c.id: adapter.scan(paths[c.id]) for c in cases if c.id in paths}
+            if name == "self":
+                for c in cases:
+                    if c.id not in paths:
+                        results[c.id] = AdapterResult(scan_in_memory(c), 0.0, None, {"in_memory": True})
             s = score(cases, results, classes)
             s["version"] = versions[name]
             s["verdicts"] = {cid: r.verdict for cid, r in sorted(results.items())}

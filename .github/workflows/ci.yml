@@ -22,4 +22,10 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install -r requirements-dev.txt
       - run: python -m pytest -q
-      - run: python -m bench.run --scanner self --out bench-out --check-thresholds
+      - name: Benchmark thresholds
+        shell: bash
+        run: |
+          extra=""
+          # Linux runners have no antivirus, so cases that antivirus flags are written to disk there too
+          if [ "$RUNNER_OS" = "Linux" ]; then extra="--include-av-sensitive"; fi
+          python -m bench.run --scanner self --out bench-out --check-thresholds $extra

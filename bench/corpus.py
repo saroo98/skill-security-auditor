@@ -22,6 +22,7 @@ class Case:
     expect: str
     files: tuple[tuple[str, str, str], ...]  # (path, content, encoding)
     malicious: bool
+    av_sensitive: bool = False
 
 
 def load_classes() -> dict[str, dict]:
@@ -42,6 +43,7 @@ def _load(path: Path, malicious: bool) -> Case:
         expect=data["expect"],
         files=files,
         malicious=malicious,
+        av_sensitive=bool(data.get("av_sensitive", False)),
     )
 
 
@@ -51,12 +53,32 @@ def load_cases(root: Path = CORPUS) -> list[Case]:
     return cases
 
 
-def materialize(cases: list[Case], out: Path) -> dict[str, Path]:
+def case_bytes(case: Case) -> dict[str, bytes]:
+    out: dict[str, bytes] = {}
+    for rel, content, encoding in case.files:
+        codec, bom = ENCODINGS[encoding]
+        out[rel] = bom + content.encode(codec)
+    return out
+
+
+def scan_in_memory(case: Case) -> str:
+    """Verdict of this project's checks on a case, without writing the case to disk."""
+    from bench.adapters import self_  # noqa: F401  (puts the skill scripts on sys.path)
+    from skillaudit.engine import scan_files
+    from skillaudit.model import VERDICT_RANK
+
+    result = scan_files(case_bytes(case), root_name=case.id)
+    return max((u.verdict for u in result.units), key=VERDICT_RANK.__getitem__, default="PASS")
+
+
+def materialize(cases: list[Case], out: Path, skip_av_sensitive: bool = False) -> dict[str, Path]:
     out = Path(out).resolve()
     if out == REPO_ROOT or REPO_ROOT in out.parents:
         raise ValueError("materialize writes hostile test skills; choose a directory outside the repository")
     written: dict[str, Path] = {}
     for case in cases:
+        if skip_av_sensitive and case.av_sensitive:
+            continue
         base = out / ("malicious" if case.malicious else "benign") / case.id
         for rel, content, encoding in case.files:
             codec, bom = ENCODINGS[encoding]
@@ -71,11 +93,13 @@ def main(argv: list[str] | None = None) -> int:
     import sys
 
     args = list(sys.argv[1:] if argv is None else argv)
+    include = "--include-av-sensitive" in args
+    args = [a for a in args if a != "--include-av-sensitive"]
     if len(args) != 1:
-        print("usage: python -m bench.materialize <directory outside the repository>", file=sys.stderr)
+        print("usage: python -m bench.materialize <directory outside the repository> [--include-av-sensitive]", file=sys.stderr)
         return 2
     try:
-        written = materialize(load_cases(), Path(args[0]))
+        written = materialize(load_cases(), Path(args[0]), skip_av_sensitive=not include)
     except ValueError as exc:
         print(exc, file=sys.stderr)
         return 2

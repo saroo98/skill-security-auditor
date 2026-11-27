@@ -49,7 +49,7 @@ def test_case_files_are_ascii_on_disk():
 
 
 def test_materialize_writes_exact_bytes(tmp_path):
-    out = materialize(load_cases(), tmp_path / "m")
+    out = materialize(load_cases(), tmp_path / "m", skip_av_sensitive=True)
     e07 = (out["e07"] / "SKILL.md").read_bytes()
     assert e07.startswith(b"\xff\xfe")
     assert chr(0xE0049) in (out["e05"] / "SKILL.md").read_text(encoding="utf-8")
@@ -60,3 +60,24 @@ def test_materialize_writes_exact_bytes(tmp_path):
 def test_materialize_refuses_repo_directory():
     with pytest.raises(ValueError, match="outside the repository"):
         materialize(load_cases(), REPO_ROOT / "bench" / "tmp-out")
+
+
+def test_antivirus_sensitive_cases_are_tagged():
+    by_id = {c.id: c for c in load_cases()}
+    assert by_id["c03"].av_sensitive is True
+    assert by_id["e01"].av_sensitive is False
+
+
+def test_materialize_can_skip_antivirus_sensitive_cases(tmp_path):
+    out = materialize(load_cases(), tmp_path, skip_av_sensitive=True)
+    assert "c03" not in out and "e01" in out
+    assert not (tmp_path / "malicious" / "c03").exists()
+
+
+def test_every_case_scans_in_memory_without_touching_disk():
+    # the same files the benchmark writes, fed to the engine's analyzers as text
+    from bench.corpus import scan_in_memory
+
+    by_id = {c.id: c for c in load_cases()}
+    assert scan_in_memory(by_id["c03"]) == "BLOCK"
+    assert scan_in_memory(by_id["b04"]) in ("PASS", "REVIEW", "BLOCK")

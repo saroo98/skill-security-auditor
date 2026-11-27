@@ -25,7 +25,7 @@ jobs:
           /tmp/ss/bin/pip install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_COMMIT}"
           echo "SKILLSPECTOR_BIN=/tmp/ss/bin/skillspector" >> "$GITHUB_ENV"
       - name: Run the benchmark
-        run: python -m bench.run --scanner self --scanner skillspector --out bench-out --date "$(date -u +%F)"
+        run: python -m bench.run --scanner self --scanner skillspector --include-av-sensitive --out bench-out --date "$(date -u +%F)"
       - uses: actions/upload-artifact@v4
         with:
           name: bench-results

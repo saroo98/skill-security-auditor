@@ -37,7 +37,8 @@ def test_benign_counts():
 
 def test_self_adapter_runs_all_seed_cases(tmp_path):
     cases = load_cases()
-    paths = materialize(cases, tmp_path)
+    paths = materialize(cases, tmp_path, skip_av_sensitive=True)
+    cases = [c for c in cases if c.id in paths]
     adapter = get("self")
     assert adapter.available()
     for c in cases:
@@ -79,3 +80,17 @@ def test_reproduce_line_has_no_local_paths(tmp_path):
     run.main(["--scanner", "self", "--out", str(out), "--date", "2026-01-01"])
     md = (out / "RESULTS.md").read_text(encoding="utf-8")
     assert "private-place" not in md and "--scanner self --date 2026-01-01" in md
+
+
+def test_runner_skips_av_sensitive_cases_unless_asked(tmp_path, monkeypatch):
+    seen = []
+    real = run.materialize
+
+    def spy(cases, out, skip_av_sensitive=False):
+        seen.append(skip_av_sensitive)
+        return real(cases, out, skip_av_sensitive=True)  # record the flag, never write flagged cases here
+
+    monkeypatch.setattr(run, "materialize", spy)
+    run.main(["--scanner", "self", "--out", str(tmp_path / "a")])
+    run.main(["--scanner", "self", "--out", str(tmp_path / "b"), "--include-av-sensitive"])
+    assert seen == [True, False]

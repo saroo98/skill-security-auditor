@@ -92,6 +92,25 @@ def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
     start = time.perf_counter()
     root = Path(root)
     files, not_checked = discover(root, max_file_size=max_file_size)
+    result = scan_entries(files, not_checked, root_name=root.name or "skill")
+    result.tree_hash = tree_hash(root) if root.is_dir() else ""
+    result.elapsed = time.perf_counter() - start
+    return result
+
+
+def scan_files(contents: dict[str, bytes], root_name: str = "skill") -> ScanResult:
+    """Scan files held in memory, keyed by relative path. Nothing is written to disk."""
+    from .discovery import classify
+
+    files: list[FileEntry] = []
+    not_checked: list[NotChecked] = []
+    for rel in sorted(contents):
+        classify(None, rel, contents[rel], files, not_checked)
+    return scan_entries(files, not_checked, root_name=root_name)
+
+
+def scan_entries(files: list[FileEntry], not_checked: list[NotChecked], *, root_name: str = "skill") -> ScanResult:
+    start = time.perf_counter()
 
     unit_roots = sorted(
         {f.rel.rsplit("/", 1)[0] if "/" in f.rel else "" for f in files if f.rel.split("/")[-1] == "SKILL.md"},
@@ -116,7 +135,7 @@ def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
             name = REPOSITORY_UNIT
         else:
             skill_md = next((f for f in unit_files if f.rel == (f"{key}/SKILL.md" if key else "SKILL.md")), None)
-            fallback = key.rsplit("/", 1)[-1] if key else (root.name or "skill")
+            fallback = key.rsplit("/", 1)[-1] if key else root_name
             name = skill_name(skill_md.text if skill_md else None, fallback)
         capabilities: list[Capability] = []
         for entry in unit_files:
@@ -135,5 +154,4 @@ def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
             not_checked=unit_nc,
             verdict=verdict_for(severities),
         ))
-    digest = tree_hash(root) if root.is_dir() else ""
-    return ScanResult(units=units, elapsed=time.perf_counter() - start, tree_hash=digest)
+    return ScanResult(units=units, elapsed=time.perf_counter() - start, tree_hash="")

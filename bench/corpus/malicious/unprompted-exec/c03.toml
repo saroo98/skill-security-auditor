@@ -4,6 +4,7 @@ technique = "npm preinstall downloads and runs a script"
 source = "https://snyk.io/blog/toxicskills-malicious-ai-agent-skills-clawhub/"
 ast10 = ["AST02"]
 expect = "BLOCK"
+av_sensitive = true
 
 [[files]]
 path = "package.json"

@@ -121,6 +121,23 @@ def _truncate_lines(text: str) -> tuple[str, list[int]]:
     return ("\n".join(lines), truncated) if truncated else (text, [])
 
 
+def classify(path: Path | None, rel: str, data: bytes, files: list[FileEntry], not_checked: list[NotChecked]) -> None:
+    """Decode and classify one file's bytes; append to files or not_checked."""
+    text, encoding = _decode(data)
+    kind = _kind(rel.rsplit("/", 1)[-1], data, text)
+    size = len(data)
+    if kind in NOT_CHECKED_SEVERITY:
+        not_checked.append(NotChecked(rel, NOT_CHECKED_REASON[kind], NOT_CHECKED_SEVERITY[kind]))
+        if kind == "other-source" and text is not None:
+            files.append(FileEntry(path, rel, kind, _role(rel, kind), text, encoding, size))
+        return
+    assert text is not None
+    text, truncated = _truncate_lines(text)
+    for line in truncated:
+        not_checked.append(NotChecked(rel, f"line {line} truncated at {MAX_LINE} characters", "medium"))
+    files.append(FileEntry(path, rel, kind, _role(rel, kind), text, encoding, size))
+
+
 def discover(root: Path, *, max_file_size: int = 1_048_576, max_files: int = 2000) -> tuple[list[FileEntry], list[NotChecked]]:
     root = Path(root)
     files: list[FileEntry] = []
@@ -177,17 +194,6 @@ def discover(root: Path, *, max_file_size: int = 1_048_576, max_files: int = 200
         except OSError as exc:
             not_checked.append(NotChecked(rel, f"cannot read: {exc.strerror}", "medium"))
             continue
-        text, encoding = _decode(data)
-        kind = _kind(path.name, data, text)
-        if kind in NOT_CHECKED_SEVERITY:
-            not_checked.append(NotChecked(rel, NOT_CHECKED_REASON[kind], NOT_CHECKED_SEVERITY[kind]))
-            if kind == "other-source" and text is not None:
-                files.append(FileEntry(path, rel, kind, _role(rel, kind), text, encoding, size))
-            continue
-        assert text is not None
-        text, truncated = _truncate_lines(text)
-        for line in truncated:
-            not_checked.append(NotChecked(rel, f"line {line} truncated at {MAX_LINE} characters", "medium"))
-        files.append(FileEntry(path, rel, kind, _role(rel, kind), text, encoding, size))
+        classify(path, rel, data, files, not_checked)
 
     return files, not_checked

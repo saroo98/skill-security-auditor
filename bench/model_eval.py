@@ -12,15 +12,13 @@ import json
 import os
 import re
 import shlex
-import shutil
 import subprocess
 import sys
-import tempfile
 from pathlib import Path
 
 from bench.adapters import self_  # noqa: F401  (puts the skill scripts on sys.path)
-from bench.corpus import BENCH, REPO_ROOT, Case, load_cases, materialize
-from skillaudit.engine import scan_path
+from bench.corpus import BENCH, REPO_ROOT, Case, case_bytes, load_cases
+from skillaudit.engine import scan_files
 from skillaudit.model import stricter
 from skillaudit.packet import build_packet
 
@@ -53,35 +51,33 @@ def parse_reply(reply: str) -> str:
     return "REVIEW"
 
 
-def _instruction_files(root: Path) -> list[tuple[str, str]]:
-    skill = root / "SKILL.md"
-    if not skill.is_file():
+def _instruction_files(contents: dict[str, bytes]) -> list[tuple[str, str]]:
+    data = contents.get("SKILL.md")
+    if data is None:
         return []
-    return [("SKILL.md", skill.read_bytes().decode("utf-8", errors="replace").lstrip("﻿")
-             if not skill.read_bytes().startswith(b"\xff\xfe") else skill.read_bytes()[2:].decode("utf-16-le"))]
+    if data.startswith(b"\xff\xfe"):
+        return [("SKILL.md", data[2:].decode("utf-16-le", errors="replace"))]
+    return [("SKILL.md", data.decode("utf-8", errors="replace").lstrip(chr(0xFEFF)))]
 
 
 def evaluate(cases: list[Case], command: list[str]) -> dict[str, dict]:
-    workdir = Path(tempfile.mkdtemp(prefix="skillaudit-model-"))
+    """Everything stays in memory: no case is written to disk."""
     out: dict[str, dict] = {}
-    try:
-        paths = materialize(cases, workdir)
-        for c in cases:
-            result = scan_path(paths[c.id])
-            static = max((u.verdict for u in result.units), key=("PASS", "REVIEW", "BLOCK").index, default="PASS")
-            if static == "BLOCK" or not result.units:
-                out[c.id] = {"static": static, "model": None, "final": static}
-                continue
-            packet, _ = build_packet(result.units[0], _instruction_files(paths[c.id]))
-            try:
-                p = subprocess.run(command, input=build_prompt(packet), capture_output=True, text=True,
-                                   encoding="utf-8", errors="replace", timeout=TIMEOUT)
-                model = parse_reply(p.stdout)
-            except (OSError, subprocess.SubprocessError):
-                model = "REVIEW"
-            out[c.id] = {"static": static, "model": model, "final": stricter(static, model)}
-    finally:
-        shutil.rmtree(workdir, ignore_errors=True)
+    for c in cases:
+        contents = case_bytes(c)
+        result = scan_files(contents, root_name=c.id)
+        static = max((u.verdict for u in result.units), key=("PASS", "REVIEW", "BLOCK").index, default="PASS")
+        if static == "BLOCK" or not result.units:
+            out[c.id] = {"static": static, "model": None, "final": static}
+            continue
+        packet, _ = build_packet(result.units[0], _instruction_files(contents))
+        try:
+            p = subprocess.run(command, input=build_prompt(packet), capture_output=True, text=True,
+                               encoding="utf-8", errors="replace", timeout=TIMEOUT)
+            model = parse_reply(p.stdout)
+        except (OSError, subprocess.SubprocessError):
+            model = "REVIEW"
+        out[c.id] = {"static": static, "model": model, "final": stricter(static, model)}
     return out
 
 
