@@ -235,11 +235,11 @@ Results on 2026-11-27, model stages off for every scanner. Full table: [`bench/r
 
 | Verdict | Skills | Share |
 | --- | ---: | ---: |
-| ✅ PASS | 2,088 | 75.8% |
-| ⚠️ REVIEW | 569 | 20.7% |
-| ⛔ BLOCK | 96 | 3.5% |
+| ✅ PASS | 2,204 | 80.06% |
+| ⚠️ REVIEW | 453 | 16.45% |
+| ⛔ BLOCK | 96 | 3.49% |
 
-Manual triage recorded 42 blocks the user should check before installing and 54 false alarms (2.0% of all skills). See [`bench/triage.toml`](bench/triage.toml) and [the benchmark results](bench/results/RESULTS.md).
+Manual triage recorded 42 blocks the user should check before installing and 54 false alarms (1.96% of all skills). See [`bench/triage.toml`](bench/triage.toml) and [the benchmark results](bench/results/RESULTS.md).
 
 Reproduce:
 

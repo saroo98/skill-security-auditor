@@ -107,12 +107,15 @@ def decide(caps: list[Capability], not_checked: list[NotChecked], *, declared: s
         findings.append(make_finding(check_id, severity, cap.file, cap.line, message or check.title, cap.snippet,
                                      evidence_digest=cap.evidence_digest))
 
+    def is_declared(cap: Capability) -> bool:
+        return cap.kind in (declared or ()) or (cap.kind == "pkg.install" and cap.get("documented") == "yes")
+
     flows_by_file = {c.file for c in caps if c.kind == "flow" and c.get("source") == "secret.read"}
     for cap in caps:
         check_id = _check_for(cap)
         if not check_id:
             continue
-        if declared is not None and cap.kind in ("pkg.install", "fs.write.outside") and cap.kind in declared:
+        if declared is not None and cap.kind in ("pkg.install", "fs.write.outside") and is_declared(cap):
             add(check_id, cap, severity="low")  # the skill says it does this
         else:
             add(check_id, cap)
@@ -127,7 +130,7 @@ def decide(caps: list[Capability], not_checked: list[NotChecked], *, declared: s
         for cap in caps:
             if cap.kind not in DECLARABLE or cap.file in unreferenced_low_roles:
                 continue
-            if cap.kind in declared:
+            if is_declared(cap):
                 if cap.kind == "net.outbound":
                     add("declared-network", cap)
                 continue

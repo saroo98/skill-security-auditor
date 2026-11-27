@@ -41,6 +41,12 @@ CONCEAL = (
 )
 QUIET_PREDICATE = re.compile(r"\b(?:(?P<actor>you|agents?|assistants?)\s+)?(?P<verb>not|would|will|may|might|could)\s*$", I)
 NOASK = re.compile(r"\bwithout\s+(asking|confirmation|confirming|approval|permission|prompting|consent|checking with|telling)\b", I)
+NOASK_PROHIBITION = re.compile(
+    r"\s*,\s*(?:(?:do not|don['’]t|never)\s+|"
+    r"(?:[\w-]+\s+){1,6}(?:is|are)\s+not\s+(?:applied|executed|performed|taken|allowed|permitted)\b)", I)
+NOASK_REPEAT_SETUP = re.compile(
+    r"\s+(?:the\s+)?(?:user|developer|operator)\s+to\s+"
+    r"(?:re[- ]?configure\s+it|configure\s+it\s+again)\b", I)
 FLAGS = re.compile(r"--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b|\bbypassPermissions\b|"
                    r"--full-auto\b|--ask-for-approval\s+never\b", I)
 EXTERNAL = (
@@ -102,6 +108,9 @@ _IMG_ALT = re.compile(r"!\[([^\]]+)\]\(")
 _BANG = re.compile(r"!`([^`\n]+)`")
 _LIST = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 _SENT = re.compile(r"(?<=[.!?])\s+(?=\S)")
+_HEADING = re.compile(r"^([ \t]*)(#{1,6})\s+(.+?)\s*#*\s*$")
+_INSTALL_HEADING = re.compile(r"^(npm|pnpm|yarn|bun)$|\b(install(?:ation|ing)?|dependenc(?:y|ies))\b", I)
+_INSTALL_PROSE = re.compile(r"\binstall(?:s|ing)?\b[^.]{0,60}\b(?:npm|pnpm|yarn|bun|packages|dependencies)\b", I)
 
 
 def _negated(prefix: str) -> bool:
@@ -163,8 +172,12 @@ class _Prose:
                             continue
                     hit("instruction.conceal", m, cstart, negatable=pat is CONCEAL[-1])
             for m in NOASK.finditer(clause):
-                before = text[: cstart + m.start()]
-                if NEG.search(before):
+                before = clause[:m.start()]
+                if NEG.search(before.replace("’", "'")):
+                    continue
+                if not before.strip() and NOASK_PROHIBITION.match(clause, m.end()):
+                    continue
+                if m[1].lower() == "asking" and NOASK_REPEAT_SETUP.match(clause, m.end()):
                     continue
                 hit("instruction.noask", m, cstart, negatable=False)
             for m in FLAGS.finditer(clause):
@@ -326,15 +339,16 @@ def analyze(entry: FileEntry) -> list[Capability]:
     body = "\n".join(t for _, t in visible)
     first_line = visible[0][0] if visible else 1
     hidden_segments: list[tuple[int, str]] = []
+    comment_lines: set[int] = set()
 
-    def collect(pattern: re.Pattern, s: str) -> str:
-        def repl(m: re.Match) -> str:
-            line = first_line + s.count("\n", 0, m.start())
-            hidden_segments.append((line, m.group(1)))
-            return "\n" * m.group(0).count("\n")
-        return pattern.sub(repl, s)
+    def strip_comment(m: re.Match) -> str:
+        line = first_line + body.count("\n", 0, m.start())
+        breaks = m[0].count("\n")
+        hidden_segments.append((line, m[1]))
+        comment_lines.update(range(line, line + breaks + 1))
+        return "\n" * breaks
 
-    body = collect(_COMMENT, body)
+    body = _COMMENT.sub(strip_comment, body)
     for pattern in (_LINK_TITLE, _IMG_ALT):
         for m in pattern.finditer(body):
             hidden_segments.append((first_line + body.count("\n", 0, m.start()), m.group(1)))
@@ -355,7 +369,39 @@ def analyze(entry: FileEntry) -> list[Capability]:
         for cap in configs.frontmatter_caps(entry):
             if cap not in prose.caps:
                 prose.caps.append(cap)
-    return prose.caps
+    return _documented_installs(prose.caps, body_lines, all_lines, comment_lines)
+
+
+def _documented_installs(
+    caps: list[Capability], visible: list[tuple[int, str]], source: list[str], comment_lines: set[int]
+) -> list[Capability]:
+    installs = {c for c in caps if c.kind == "pkg.install" and c.get("fenced") == c.get("project_dependency") == "yes"}
+    if not installs:
+        return caps
+    candidates = {c.line for c in installs} - comment_lines
+    documented = set()
+    install_headings: list[tuple[int, int]] = []
+    introduced = False
+    for number, raw in visible:
+        heading = _HEADING.match(raw)
+        if heading:
+            indent, level = len(heading[1]), len(heading[2])
+            while install_headings and (install_headings[-1][0] >= level or install_headings[-1][1] > indent):
+                install_headings.pop()
+            if _INSTALL_HEADING.search(heading[3].strip("\x60")):
+                install_headings.append((level, indent))
+        if raw.strip():
+            introduced = bool(_INSTALL_PROSE.search(raw))
+        if number in candidates:
+            command = source[number - 1]
+            indent = len(command) - len(command.lstrip())
+            if introduced or any(section_indent <= indent for _, section_indent in install_headings):
+                documented.add(number)
+    return [
+        replace(cap, detail=tuple(sorted(dict(cap.detail, documented="yes").items())))
+        if cap in installs and cap.line in documented else cap
+        for cap in caps
+    ]
 
 
 def _fenced(prose: _Prose, lang: str, lines: list[str], start: int) -> None:
@@ -371,9 +417,9 @@ def _fenced(prose: _Prose, lang: str, lines: list[str], start: int) -> None:
         text = dedent(text)
     entry = prose.entry
     sub = FileEntry(entry.path, entry.rel, kind, entry.role, text, entry.encoding, len(text))
-    analyzer = {"shell": shell.analyze, "python": python_ast.analyze, "powershell": powershell.analyze,
-                "javascript": javascript.analyze}[kind]
-    for cap in analyzer(sub):
+    analyzers = {"python": python_ast.analyze, "powershell": powershell.analyze, "javascript": javascript.analyze}
+    caps = shell.analyze(sub, documentation=True) if kind == "shell" else analyzers[kind](sub)
+    for cap in caps:
         moved = replace(cap, line=(cap.line or 1) + start - 1, detail=tuple(sorted(dict(cap.detail, fenced="yes").items())))
         if moved not in prose.caps:
             prose.caps.append(moved)

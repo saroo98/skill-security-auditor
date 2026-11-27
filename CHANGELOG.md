@@ -3,6 +3,7 @@
 ## 0.9.1
 
 - Reduce false findings in instruction analysis, wrapped YAML descriptions, indented Python examples, and shell command detection.
+- Recognize shell path placeholders, documented project dependency commands, and explicit confirmation requirements.
 - Expand the pinned real-skill benchmark and record the review of each new block.
 - Report malformed URLs cleanly, enforce a total download deadline, and reject archive path collisions and Windows device names.
 - Require an actual skill folder for installation and compare the full quarantine tree before reusing it.

@@ -138,6 +138,49 @@ def test_declared_package_install_is_low(tmp_path):
     assert ("runtime-pkg-install", "low") in {(f.check_id, f.severity) for f in unit.findings}
 
 
+@pytest.mark.parametrize("introduction, indent, command", [
+    ("## Installation", "", "npm install --save example-sdk"),
+    ("### npm", "", "npm install --save example-sdk"),
+    ("    ### npm", "    ", "npm install --save example-sdk"),
+    ("Or install via npm:", "", "npm install --save example-sdk"),
+    ("    ## Install the Go SDK", "    ", "go get example.test/team/sdk@v1.2.3"),
+    ("## Install telemetry packages", "", "go get example.test/team/sdk example.test/team/telemetry"),
+])
+def test_documented_project_dependencies_remain_visible_without_review(tmp_path, introduction, indent, command):
+    guide = FM + "Read [the integration guide](references/integration.md).\n"
+    reference = f"{introduction}\n\n{indent}```bash\n{indent}{command}\n{indent}```\n"
+    unit = verdict(tmp_path, {"SKILL.md": guide, "references/integration.md": reference})
+    assert unit.verdict == "PASS"
+    assert ("runtime-pkg-install", "low") in {(f.check_id, f.severity) for f in unit.findings}
+
+
+@pytest.mark.parametrize("command", [
+    "sudo npm install example-sdk", "npm install -g example-sdk", "npm install https://files.example.test/library.tgz",
+    "npx --yes example-sdk", "npm install \"$PACKAGE\"", "./tools/npm install example-sdk",
+    "bash -c 'npm install example-sdk'",
+    "go install example.test/team/tool@latest", "go get -u example.test/team/sdk",
+    "GO111MODULE=off go get example.test/team/sdk", "go get example.test/team/...",
+])
+def test_documented_installs_with_extra_execution_or_scope_still_need_review(tmp_path, command):
+    guide = FM + "Read [the integration guide](references/integration.md).\n"
+    reference = "## Installation\n\n```bash\n" + command + "\n```\n"
+    unit = verdict(tmp_path, {"SKILL.md": guide, "references/integration.md": reference})
+    assert unit.verdict == "REVIEW"
+    assert ("runtime-pkg-install", "medium") in {(f.check_id, f.severity) for f in unit.findings}
+
+
+@pytest.mark.parametrize("reference", [
+    "<!-- ## Installation -->\n\n```bash\nnpm install example-sdk\n```\n",
+    "## Installation\n\n<!--\n```bash\nnpm install example-sdk\n```\n-->\n",
+    "## Installation\n\nUse an isolated environment.\n\n## Automation\n\n```bash\nnpm install example-sdk\n```\n",
+])
+def test_install_disclosure_requires_visible_setup_context(tmp_path, reference):
+    guide = FM + "Read [the integration guide](references/integration.md).\n"
+    unit = verdict(tmp_path, {"SKILL.md": guide, "references/integration.md": reference})
+    assert unit.verdict == "REVIEW"
+    assert ("runtime-pkg-install", "medium") in {(f.check_id, f.severity) for f in unit.findings}
+
+
 # second round, from the rescan ---------------------------------------------------------------------
 
 @pytest.mark.parametrize("text", ["Do not tell the user to run commands; the skill runs the deploy itself.",
@@ -177,6 +220,28 @@ def test_code_in_reference_docs_is_capped_at_review(tmp_path):
     skill = FM + "See [patterns](references/patterns.md).\n"
     unit = scan_path(make(tmp_path, {"SKILL.md": skill, "references/patterns.md": "```python\neval(user_input)\n```\n"})).units[0]
     assert unit.verdict == "REVIEW"
+
+
+def test_documented_shell_placeholder_is_not_an_outside_write(tmp_path):
+    command = "python <tool-dir>/scripts/format.py notes.txt"
+    docs = FM + "\n```bash\n" + command + "\n```\n"
+    unit = verdict(tmp_path, {"SKILL.md": docs})
+    assert unit.verdict == "PASS"
+    assert "write-outside-workspace" not in {f.check_id for f in unit.findings}
+
+
+def test_shell_write_checks_still_apply_to_real_redirects(tmp_path):
+    command = "python <tool-dir>/scripts/format.py notes.txt"
+    evidence = {"SKILL.md": FM + "\n```bash\n" + command + " > /opt/example.test/report.txt\n```\n"}
+    assert "write-outside-workspace" in {f.check_id for f in verdict(tmp_path, evidence).findings}
+    assert "fs.write.outside" in sh(command)
+
+
+def test_documented_shell_redirect_into_system_directory_still_needs_review(tmp_path):
+    docs = FM + "\n```bash\ncat <notes>/etc/example.conf\n```\n"
+    unit = verdict(tmp_path, {"SKILL.md": docs})
+    assert unit.verdict == "REVIEW"
+    assert "write-outside-workspace" in {f.check_id for f in unit.findings}
 
 
 def test_code_in_skill_md_keeps_full_severity(tmp_path):

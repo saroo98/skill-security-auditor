@@ -3,7 +3,7 @@
 Date: 2026-11-27. Corpus: 53 malicious and 20 benign cases.
 Reproduce: `python -m bench.run --scanner self --scanner skillspector --scanner cisco-skill-scanner --date 2026-11-27`
 
-Scanners: self 0.9.1 (ruleset 10); skillspector SkillSpector v2.13.7; cisco-skill-scanner skill-scanner 2.3.2.
+Scanners: self 0.9.1 (ruleset 11); skillspector SkillSpector v2.13.7; cisco-skill-scanner skill-scanner 2.3.2.
 Model stages are off for every scanner in this table.
 The Cisco corpus run returned one adapter error. The reported denominator includes that case.
 Most cases were written by this project's authors while building its checks, so this project's own numbers on them are optimistic; the real-skill results are the fairer measure of false alarms.
@@ -35,4 +35,4 @@ Per class (BLOCK / REVIEW / PASS of total; * = outside static scope):
 
 A case counts as caught when the verdict is at least as strict as the case expects.
 
-Real skills (self): 2753 skills; PASS 2088, REVIEW 569, BLOCK 96; unjustified blocks 54 (2.0%); PASS rate 75.8%.
+Real skills (self): 2753 skills; PASS 2204, REVIEW 453, BLOCK 96; unjustified blocks 54 (1.96%); PASS rate 80.06%.

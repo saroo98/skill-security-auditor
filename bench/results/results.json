@@ -358,9 +358,9 @@
       },
       "real": {
         "BLOCK": 96,
-        "PASS": 2088,
-        "REVIEW": 569,
-        "pass_rate": 0.7584,
+        "PASS": 2204,
+        "REVIEW": 453,
+        "pass_rate": 0.8006,
         "units": 2753,
         "unjustified": [
           "anthropics__claude-plugins-official/plugins/champion-kit/skills/climb",
@@ -499,7 +499,7 @@
         "w03": "BLOCK",
         "wb01": "PASS"
       },
-      "version": "0.9.1 (ruleset 10)"
+      "version": "0.9.1 (ruleset 11)"
     },
     "skillspector": {
       "benign": {
