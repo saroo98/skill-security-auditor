@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.1
+
+- Reduce false findings in instruction analysis, wrapped YAML descriptions, indented Python examples, and shell command detection.
+- Expand the pinned real-skill benchmark and record the review of each new block.
+- Report malformed URLs cleanly, enforce a total download deadline, and reject archive path collisions and Windows device names.
+- Require an actual skill folder for installation and compare the full quarantine tree before reusing it.
+- Pin skills by installation path so matching names stay independent. Existing lockfiles remain readable and migrate on the next pin.
+- Pass GitHub Action inputs through quoted environment variables and treat deletion of core system folders as critical.
+- Fingerprint full evidence before clipping report previews. Baselines from earlier versions may need new fingerprints for long evidence.
+- Document the current Codex user skill directory.
+
 ## 0.9.0
 
 - Rebuilt as an install guard: `check` fetches a skill into quarantine, gives a PASS, REVIEW or BLOCK verdict with a capped review packet for the agent's model, and `install` copies the exact checked files and pins them.

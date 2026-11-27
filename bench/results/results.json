@@ -357,9 +357,9 @@
         }
       },
       "real": {
-        "BLOCK": 97,
+        "BLOCK": 96,
         "PASS": 2088,
-        "REVIEW": 568,
+        "REVIEW": 569,
         "pass_rate": 0.7584,
         "units": 2753,
         "unjustified": [
@@ -383,7 +383,6 @@
           "google__skills/skills/cloud/cloud-monitoring-alert-configuration",
           "google__skills/skills/cloud/cloud-network-insights",
           "google__skills/skills/cloud/cloud-run-alert-configuration",
-          "google__skills/skills/cloud/google-cloud-release-radar",
           "huggingface__skills/skills/huggingface-zerogpu",
           "K-Dense-AI__scientific-agent-skills/skills/omero-integration",
           "K-Dense-AI__scientific-agent-skills/skills/pi-agent",
@@ -419,8 +418,8 @@
           "trailofbits__skills/plugins/semgrep-rule-creator/skills/semgrep-rule-creator",
           "trailofbits__skills/plugins/static-analysis/skills/sarif-parsing"
         ],
-        "unjustified_block": 55,
-        "unjustified_block_rate": 0.02
+        "unjustified_block": 54,
+        "unjustified_block_rate": 0.0196
       },
       "timing": {
         "median_seconds": 0.0
@@ -500,7 +499,7 @@
         "w03": "BLOCK",
         "wb01": "PASS"
       },
-      "version": "0.9.0 (ruleset 9)"
+      "version": "0.9.1 (ruleset 10)"
     },
     "skillspector": {
       "benign": {

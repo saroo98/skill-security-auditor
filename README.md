@@ -220,7 +220,7 @@ Results on 2026-11-27, model stages off for every scanner. Full table: [`bench/r
 
 | Scanner | Static-scope attacks caught | Benign cases blocked |
 | --- | :---: | :---: |
-| **skill-security-auditor 0.9.0** | **50/50** | **0/20** |
+| **skill-security-auditor 0.9.1** | **50/50** | **0/20** |
 | Cisco skill-scanner 2.3.2 | 25/49 | 4/20 |
 | SkillSpector 2.13.7 | 11/49 | 1/20 |
 
@@ -236,10 +236,10 @@ Results on 2026-11-27, model stages off for every scanner. Full table: [`bench/r
 | Verdict | Skills | Share |
 | --- | ---: | ---: |
 | ✅ PASS | 2,088 | 75.8% |
-| ⚠️ REVIEW | 568 | 20.6% |
-| ⛔ BLOCK | 97 | 3.5% |
+| ⚠️ REVIEW | 569 | 20.7% |
+| ⛔ BLOCK | 96 | 3.5% |
 
-Manual triage recorded 42 blocks the user should check before installing and 55 false alarms (2.0% of all skills). See [`bench/triage.toml`](bench/triage.toml) and [the benchmark results](bench/results/RESULTS.md).
+Manual triage recorded 42 blocks the user should check before installing and 54 false alarms (2.0% of all skills). See [`bench/triage.toml`](bench/triage.toml) and [the benchmark results](bench/results/RESULTS.md).
 
 Reproduce:
 
