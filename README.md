@@ -75,7 +75,7 @@ Agent skills are folders of instructions and scripts that an AI coding agent loa
 | Agent | Skills folder |
 | --- | --- |
 | Claude Code | `~/.claude/skills/securityauditor` |
-| Codex | `~/.codex/skills/securityauditor` |
+| Codex | `~/.agents/skills/securityauditor` |
 
 **2. Check a skill before installing it:**
 
@@ -186,6 +186,8 @@ python skills/securityauditor/scripts/scan_skill.py verify
 
 **GitHub Action**: scans, writes SARIF and uploads it to code scanning.
 
+The SARIF upload uses CodeQL Action v4 and requires a runner with Node.js 24 support. [GitHub's runner requirements](https://github.blog/changelog/2025-10-28-upcoming-deprecation-of-codeql-action-v3/)
+
 ```yaml
 - uses: saroo98/skill-security-auditor@main
   with:
@@ -220,24 +222,26 @@ Results on 2026-11-27, model stages off for every scanner. Full table: [`bench/r
 
 | Scanner | Static-scope attacks caught | Benign cases blocked |
 | --- | :---: | :---: |
-| **skill-security-auditor 0.9.0** | **50/50** | **0/20** |
+| **skill-security-auditor 0.9.1** | **50/50** | **0/20** |
 | Cisco skill-scanner 2.3.2 | 25/49 | 4/20 |
 | SkillSpector 2.13.7 | 11/49 | 1/20 |
+
+> The Cisco corpus run returned one adapter error. The reported denominator includes that case.
 
 > [!NOTE]
 > Most corpus cases were written by this project's authors while building its checks, so its own score on them is optimistic. The real-skill results below are the fairer measure.
 
 ### Real-world skills
 
-**1,787 skills** from eleven public repositories, each pinned to a commit (Anthropic, OpenAI, Microsoft, GitHub, NVIDIA, Hugging Face, Vercel, Trail of Bits, obra/superpowers, K-Dense; listed in [`bench/sources.toml`](bench/sources.toml)):
+**2,753 skills** from 26 public repositories pinned to exact commits in [`bench/sources.toml`](bench/sources.toml). Each skill directory was scanned independently. The two collections shared 490 skill directories from the same pinned repositories, counted once.
 
-| Verdict | Share |
-| --- | :---: |
-| ✅ PASS | 73.1% |
-| ⚠️ REVIEW | 23.2% |
-| ⛔ BLOCK | 3.6% |
+| Verdict | Skills | Share |
+| --- | ---: | ---: |
+| ✅ PASS | 2,204 | 80.06% |
+| ⚠️ REVIEW | 453 | 16.45% |
+| ⛔ BLOCK | 96 | 3.49% |
 
-Every BLOCK was reviewed by hand ([`bench/triage.toml`](bench/triage.toml)): 22 involve behavior a user should confirm before installing, such as running a downloaded install script, and 43 are false positives (2.4% of all skills) that guide further tuning.
+Manual triage recorded 42 blocks the user should check before installing and 54 false alarms (1.96% of all skills). See [`bench/triage.toml`](bench/triage.toml) and [the benchmark results](bench/results/RESULTS.md).
 
 Reproduce:
 

@@ -22,6 +22,10 @@ SHELL_TOOLS = {"bash", "shell", "write", "edit", "multiedit", "notebookedit", "*
 
 # -- minimal YAML ---------------------------------------------------------------------------------
 
+_PLAIN_LINE = re.compile(r"(?!.*:(?:\s|$))\S.*")
+_PLAIN_START = re.compile(r'''(?!['"\[\]{}&*!>|%@`]|[-?:](?:\s|$))''' + _PLAIN_LINE.pattern)
+
+
 def _strip_comment(line: str) -> str:
     out, quote = [], None
     for i, c in enumerate(line):
@@ -115,6 +119,13 @@ def parse_yaml(text: str) -> tuple[object, list[str]]:
             return "\n".join(rows) + "\n"
         return " ".join(r.strip() for r in rows if r.strip()) + "\n"
 
+    def plain_text(idx: int, indent: int, first: str = "") -> tuple[str, int]:
+        parts = [first] if first else []
+        while idx < len(lines) and lines[idx][0] > indent and _PLAIN_LINE.fullmatch(lines[idx][1]):
+            parts.append(lines[idx][1])
+            idx += 1
+        return " ".join(parts), idx
+
     def parse(idx: int, indent: int):
         if idx >= len(lines):
             return None, idx
@@ -163,9 +174,14 @@ def parse_yaml(text: str) -> tuple[object, list[str]]:
                 out[key] = block_text(lines[idx][1])
                 idx += 1
             elif value:
+                if idx < len(lines) and lines[idx][0] > indent and _PLAIN_START.fullmatch(value):
+                    value, idx = plain_text(idx, indent, value)
                 out[key] = _scalar(value, problems)
             elif idx < len(lines) and lines[idx][0] > indent:
-                out[key], idx = parse(idx, lines[idx][0])
+                if _PLAIN_START.fullmatch(lines[idx][1]):
+                    out[key], idx = plain_text(idx, indent)
+                else:
+                    out[key], idx = parse(idx, lines[idx][0])
             elif idx < len(lines) and lines[idx][0] == indent and lines[idx][1].startswith("- "):
                 out[key], idx = parse(idx, indent)
             else:
@@ -269,7 +285,7 @@ class _Config:
         return self.text.count("\n", 0, idx) + 1 if idx >= 0 else None
 
     def add(self, kind: str, line: int | None, snippet: str, **detail: str | None) -> None:
-        cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split())[:300], "high",
+        cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split()), "high",
                          tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in self.caps:
             self.caps.append(cap)
@@ -335,7 +351,7 @@ class _Config:
             allow = perms.get("allow") if isinstance(perms.get("allow"), list) else []
             if any(isinstance(a, str) and (a.startswith(("Bash", "Shell")) or a == "*") for a in allow) or \
                     perms.get("defaultMode") in ("bypassPermissions", "acceptEdits"):
-                self.add("agent.config", self.line_of("permissions"), "permissions: " + json.dumps(perms)[:200])
+                self.add("agent.config", self.line_of("permissions"), "permissions: " + json.dumps(perms))
         if name == "package.json" and isinstance(data.get("scripts"), dict):
             for hook in LIFECYCLE:
                 value = data["scripts"].get(hook)

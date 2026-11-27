@@ -66,6 +66,14 @@ def test_check_bad_address_exits_2_one_line(tmp_path, capsys):
     assert code == 2 and out == "" and len(err.strip().splitlines()) == 1
 
 
+@pytest.mark.parametrize("address", ["https://[bad/skill.zip", "https://files.example.test:bad/skill.zip", "https:///skill.zip"])
+def test_malformed_https_address_fails_before_download(capsys, monkeypatch, address):
+    monkeypatch.setattr(cli, "download", lambda *a, **k: pytest.fail("attempted download of a malformed URL"))
+    code, out, err = run(capsys, address)
+    assert code == 2 and not out
+    assert err.strip().splitlines() == ["Cannot check: invalid HTTPS address"]
+
+
 def test_missing_subpath_exits_2(tmp_path, capsys, monkeypatch):
     archive = tmp_path / "a.tar.gz"
     with tarfile.open(archive, "w:gz") as tar:

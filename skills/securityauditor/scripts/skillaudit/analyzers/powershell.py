@@ -32,7 +32,7 @@ def analyze(entry: FileEntry) -> list[Capability]:
     caps: list[Capability] = CapList()
 
     def add(kind: str, number: int, line: str, **detail: str | None) -> None:
-        cap = Capability(kind, entry.rel, number, line.strip()[:300], "high",
+        cap = Capability(kind, entry.rel, number, line.strip(), "high",
                          tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in caps:
             caps.append(cap)

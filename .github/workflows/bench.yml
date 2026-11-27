@@ -15,8 +15,8 @@ jobs:
   bench:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: "3.13"
       - name: Install SkillSpector in its own environment
@@ -28,7 +28,7 @@ jobs:
         run: python -m bench.fetch_real /tmp/real-skills
       - name: Run the benchmark
         run: python -m bench.run --scanner self --scanner skillspector --include-av-sensitive --real /tmp/real-skills --out bench-out --date "$(date -u +%F)"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v6
         with:
           name: bench-results
           path: bench-out

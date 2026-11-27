@@ -6,6 +6,9 @@ Installs packages at run time.
 
 Packages are installed while the skill runs, pulling code that was not part of the review.
 
+Project-scoped dependency commands introduced in Markdown setup examples appear as low-severity findings. This includes
+registry dependencies for JavaScript projects and module dependencies added with [modern Go](https://go.dev/doc/go-get-install-deprecation).
+
 ## Flagged
 
 ```text

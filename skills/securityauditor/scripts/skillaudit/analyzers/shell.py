@@ -7,7 +7,7 @@ redirections, and simple variable and file tracking within one script. It never 
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from urllib.parse import urlparse
 
 from ..data import is_secret_path
@@ -24,6 +24,16 @@ WRAPPERS = {"sudo", "exec", "command", "nohup", "time", "nice", "builtin", "doas
 PKG = {"pip", "pip3", "npm", "pnpm", "yarn", "cargo", "gem", "go", "apt", "apt-get", "brew", "bun", "uv", "poetry",
        "conda", "pipx", "choco", "winget", "scoop"}
 PKG_VERBS = {"install", "add", "get", "i"}
+_PROJECT_PACKAGE_MANAGERS = {"npm", "pnpm", "yarn", "bun"}
+_PROJECT_PACKAGE_FLAGS = {
+    "-d", "-e", "-s", "--save", "--save-dev", "--save-exact", "--save-peer",
+    "--save-optional", "--no-save", "--ignore-scripts", "--frozen-lockfile",
+}
+_REGISTRY_PACKAGE = re.compile(r"(?:@[a-z0-9][\w.-]*/)?[a-z0-9][\w.-]*(?:@[~^]?[a-z0-9][\w.+-]*)?", re.I | re.ASCII)
+_GO_PACKAGE = re.compile(
+    r"(?:[a-z0-9][a-z0-9-]*\.)+[a-z0-9][a-z0-9-]*(?:/[a-z0-9_][a-z0-9_.-]*)+"
+    r"(?:@(?:latest|v[0-9][a-z0-9.+-]*))?", re.ASCII
+)
 PROFILE_FILES = (".bashrc", ".zshrc", ".profile", ".bash_profile", ".zprofile", ".config/fish/config.fish",
                  "/etc/profile", "LaunchAgents/", "LaunchDaemons/", "autostart/")
 AGENT_DIRS = (".claude/", ".codex/", ".cursor/", ".gemini/", ".agents/")
@@ -34,8 +44,15 @@ _URL = re.compile(r"https?://[^\s'\"`<>()|;]+", re.IGNORECASE)
 _VAR = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.DOTALL)
 _HOME = re.compile(r"^(\$HOME|\$\{HOME\}|%USERPROFILE%|\$env:USERPROFILE|~)", re.IGNORECASE)
+_WIN_SYSTEM_ROOT = re.compile(r"^(?:\$env:(?:systemroot|windir)|%(?:systemroot|windir)%)(?=/|$)", re.IGNORECASE)
+_UNIX_SYSTEM_DIRS = {
+    "/bin", "/boot", "/dev", "/etc", "/lib", "/lib32", "/lib64", "/proc", "/sbin", "/sys", "/usr", "/usr/bin",
+    "/usr/lib", "/usr/lib64", "/usr/sbin", "/var", "/var/lib", "/System", "/System/Library", "/private/etc", "/private/var",
+}
+_WINDOWS_SYSTEM_DIRS = {"windows", "windows/system32", "windows/syswow64", "program files", "program files (x86)", "programdata"}
 MAX_DEPTH = 3
 _PURE_EXPANSION = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*(?::?[-=?+#%][^}]*)?\}?|\$\([^()]*\)|\$[@*#?$!0-9]")
+_DOC_PLACEHOLDER = re.compile(r"<[A-Za-z][A-Za-z0-9_.-]{0,63}>(?=/)")
 
 
 @dataclass
@@ -43,6 +60,7 @@ class Tok:
     kind: str  # "word" | "op" | "procsub"
     text: str
     subs: list[str] = field(default_factory=list)
+    placeholder_suffix: bool = False
 
 
 def _capture(s: str, i: int, open_ch: str, close_ch: str) -> tuple[str, int]:
@@ -71,12 +89,13 @@ def _capture(s: str, i: int, open_ch: str, close_ch: str) -> tuple[str, int]:
     return s[i:], len(s)
 
 
-def lex(s: str) -> list[Tok]:
+def lex(s: str, *, documentation: bool = False) -> list[Tok]:
     toks: list[Tok] = []
     word: list[str] = []
     subs: list[str] = []
     in_word = False
     i = 0
+    placeholder_end = -1
 
     def flush() -> None:
         nonlocal word, subs, in_word
@@ -158,11 +177,14 @@ def lex(s: str) -> list[Tok]:
         else:
             matched = next((op for op in ops if s.startswith(op, i)), None)
             if matched:
+                if documentation and matched == "<" and (placeholder := _DOC_PLACEHOLDER.match(s, i)):
+                    # Keep both operators for analysis and mark the closing one as ambiguous.
+                    placeholder_end = placeholder.end() - 1
                 if in_word and "".join(word).isdigit() and matched[0] in "<>":
                     word, subs, in_word = [], [], False
                 else:
                     flush()
-                toks.append(Tok("op", matched))
+                toks.append(Tok("op", matched, placeholder_suffix=matched == ">" and i == placeholder_end))
                 i += len(matched)
             else:
                 word.append(c)
@@ -178,6 +200,7 @@ class Stage:
     redirects: list[tuple[str, Tok]]
     procsubs: list[str]
     assignments: list[tuple[str, Tok]]
+    wrapped: bool = False
 
     @property
     def name(self) -> str:
@@ -202,7 +225,7 @@ def _stages(toks: list[Tok]) -> list[list[Stage]]:
     lists: list[list[Stage]] = []
     pipeline: list[Stage] = []
     cur = Stage([], [], [], [])
-    pending: str | None = None
+    pending: Tok | None = None
 
     def end_stage() -> None:
         nonlocal cur
@@ -212,13 +235,16 @@ def _stages(toks: list[Tok]) -> list[list[Stage]]:
 
     for tok in toks:
         if pending:
-            cur.redirects.append((pending, tok if tok.kind != "op" else Tok("word", "")))
+            target = tok if tok.kind != "op" else Tok("word", "")
+            if pending.placeholder_suffix:
+                target = replace(target, placeholder_suffix=True)
+            cur.redirects.append((pending.text, target))
             pending = None
             if tok.kind != "op":
                 continue
         if tok.kind == "op":
             if tok.text in REDIRECT_OPS:
-                pending = tok.text
+                pending = tok
             elif tok.text in PIPE_OPS:
                 end_stage()
             elif tok.text in LIST_OPS or tok.text in "(){}":
@@ -250,10 +276,12 @@ def _unwrap(st: Stage) -> None:
     if st.words and st.words[0].text.endswith(")") and "(" not in st.words[0].text:
         st.words = st.words[1:]
     while st.words and st.name in WRAPPERS:
+        st.wrapped = True
         st.words = st.words[1:]
         while st.words and st.words[0].text.startswith("-"):
             st.words = st.words[1:]
     if st.words and st.name == "env" and len(st.words) > 1:
+        st.wrapped = True
         rest = st.words[1:]
         while rest and (_ASSIGN.match(rest[0].text) or rest[0].text.startswith("-")):
             rest = rest[1:]
@@ -268,17 +296,21 @@ def _norm_path(p: str) -> str:
 
 
 def _delete_target(path: str) -> str:
-    p = _norm_path(path)
-    if p in ("/", "/*", "~", "~/", "~/*") or re.fullmatch(r"[A-Za-z]:/?\*?", p):
-        return "root" if not p.startswith("~") else "home"
-    if p.startswith("~"):
+    p = _WIN_SYSTEM_ROOT.sub("C:/Windows", _norm_path(path))
+    if p in ("/", "/*") or re.fullmatch(r"[A-Za-z]:/?\*?", p):
+        return "root"
+    base = p.rstrip("/").removesuffix("/*")
+    if base.startswith("~") and "/" not in base:
         return "home"
-    if p.startswith("/") or re.match(r"[A-Za-z]:/", p):
+    drive = re.match(r"[A-Za-z]:/", p)
+    if base in _UNIX_SYSTEM_DIRS or (drive and base[3:].casefold() in _WINDOWS_SYSTEM_DIRS):
+        return "system"
+    if p.startswith(("/", "~")) or drive:
         return "absolute"
     return "project"
 
 
-_RANK = {"project": 0, "absolute": 1, "home": 2, "root": 3}
+_RANK = {"project": 0, "absolute": 1, "system": 2, "home": 3, "root": 4}
 
 
 def _host(url: str) -> str | None:
@@ -322,7 +354,7 @@ class ShellAnalyzer:
 
     # -- helpers -------------------------------------------------------------------------
     def add(self, kind: str, line: int | None, snippet: str, **detail: str) -> None:
-        cap = Capability(kind, self.file, line, snippet.strip()[:300], self.confidence,
+        cap = Capability(kind, self.file, line, snippet.strip(), self.confidence,
                          tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in self.caps:
             self.caps.append(cap)
@@ -381,14 +413,14 @@ class ShellAnalyzer:
         return False
 
     # -- main ----------------------------------------------------------------------------
-    def run(self, text: str, line: int | None, depth: int = 0) -> None:
+    def run(self, text: str, line: int | None, depth: int = 0, *, documentation: bool = False) -> None:
         if depth > MAX_DEPTH:
             self.add("obfuscation", line, text, why="nesting too deep")
             return
-        for pipeline in _stages(lex(text)):
-            self._pipeline(pipeline, line, depth)
+        for pipeline in _stages(lex(text, documentation=documentation)):
+            self._pipeline(pipeline, line, depth, documentation=documentation)
 
-    def _pipeline(self, pipeline: list[Stage], line: int | None, depth: int) -> None:
+    def _pipeline(self, pipeline: list[Stage], line: int | None, depth: int, *, documentation: bool) -> None:
         snippet = " | ".join(" ".join(w.text for w in st.words) for st in pipeline)
         upstream_sources: set[str] = set()
         upstream_fetch = False
@@ -458,7 +490,7 @@ class ShellAnalyzer:
             if "secret.read" in self._stage_sources(st):
                 env_only = all(_dotenv(t) for t in [w.text for w in st.args] if _secret_tokens(t))
                 self.add("secret.read", line, snippet, what="dotenv" if env_only else None)
-            self._installs(st, line, snippet)
+            self._installs(st, line, snippet, documentation=documentation)
             self._writes(st, line, snippet, sources_here | upstream_sources)
 
             upstream_sources |= sources_here
@@ -602,11 +634,17 @@ class ShellAnalyzer:
         worst = max((_delete_target(t) for t in targets), key=_RANK.__getitem__)
         self.add("fs.delete", line, snippet, target=worst)
 
-    def _installs(self, st: Stage, line: int | None, snippet: str) -> None:
+    def _installs(self, st: Stage, line: int | None, snippet: str, *, documentation: bool) -> None:
         name = st.name
         args = [a.text.lower() for a in st.args]
         if name in PKG and args and args[0] in PKG_VERBS:
-            self.add("pkg.install", line, snippet)
+            project_dependency = False
+            if documentation and st.words[0].text == name and not (st.wrapped or st.assignments or st.redirects):
+                if name in _PROJECT_PACKAGE_MANAGERS and args[0] in ("install", "add", "i"):
+                    project_dependency = all(a in _PROJECT_PACKAGE_FLAGS or _REGISTRY_PACKAGE.fullmatch(a) for a in args[1:])
+                elif name == "go" and args[0] == "get" and len(args) > 1:
+                    project_dependency = all(_GO_PACKAGE.fullmatch(a) and "..." not in a for a in args[1:])
+            self.add("pkg.install", line, snippet, project_dependency="yes" if project_dependency else "")
         elif name in PKG and len(args) >= 2 and args[0] == "pip" and args[1] in PKG_VERBS:
             self.add("pkg.install", line, snippet)
         elif name in ("python", "python3", "py") and args[:2] == ["-m", "pip"] and len(args) > 2 and args[2] in PKG_VERBS:
@@ -617,13 +655,13 @@ class ShellAnalyzer:
             self.add("pkg.install", line, snippet)
 
     def _writes(self, st: Stage, line: int | None, snippet: str, sources: set[str]) -> None:
-        targets = [t.text for op, t in st.redirects if op in (">", ">>", "&>", ">|") and t.text]
+        targets = [t for op, t in st.redirects if op in (">", ">>", "&>", ">|") and t.text]
         if st.name in ("cp", "mv", "install", "ln") and len(st.args) >= 2:
-            targets.append(st.args[-1].text)
+            targets.append(st.args[-1])
         if st.name == "tee":
-            targets += [a.text for a in st.args if not a.text.startswith("-")]
+            targets += [a for a in st.args if not a.text.startswith("-")]
         for target in targets:
-            norm = _norm_path(target)
+            norm = _norm_path(target.text)
             if sources:
                 self.tainted_files[norm] = sorted(sources)[0]
             if any(p in norm for p in PROFILE_FILES):
@@ -632,7 +670,8 @@ class ShellAnalyzer:
                     norm.startswith("~") or norm.startswith("/")) and _AGENT_CONFIG.search(norm):
                 self.add("agent.config", line, snippet)
             elif norm.startswith("~") or (norm.startswith("/") and not norm.startswith(("/tmp", "/dev/", "/var/tmp"))):
-                self.add("fs.write.outside", line, snippet)
+                if not target.placeholder_suffix or any(norm == d or norm.startswith(d + "/") for d in _UNIX_SYSTEM_DIRS):
+                    self.add("fs.write.outside", line, snippet)
         if st.name == "crontab" and [a.text for a in st.args] != ["-l"]:
             self.add("persist", line, snippet)
         args = [a.text.lower() for a in st.args]
@@ -677,11 +716,11 @@ def _skip_heredocs(lines: list[tuple[int, str]]) -> list[tuple[int, str]]:
     return out
 
 
-def analyze(entry: FileEntry) -> list[Capability]:
+def analyze(entry: FileEntry, *, documentation: bool = False) -> list[Capability]:
     analyzer = ShellAnalyzer(entry.rel)
     for number, line in _skip_heredocs(logical_lines(entry.text or "")):
         if line.strip():
-            analyzer.run(line, number)
+            analyzer.run(line, number, documentation=documentation)
     return analyzer.caps
 
 

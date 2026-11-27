@@ -6,6 +6,8 @@ import hashlib
 import json
 import os
 import re
+from collections import Counter
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -16,7 +18,7 @@ from .model import VERDICT_RANK, Finding, ScanResult
 from .policy import can_summary, unprompted_summary
 from .sanitize import sanitize
 
-SCHEMA = 1
+SCHEMA = 2
 _HOSTS = re.compile(r"\(([^)]*)\)$")
 
 
@@ -32,6 +34,7 @@ class Drift:
     new_unprompted: list[str] = field(default_factory=list)
     new_findings: list[Finding] = field(default_factory=list)
     missing: bool = False
+    path: str | None = None
 
 
 def file_hashes(root: Path) -> dict[str, str]:
@@ -83,6 +86,26 @@ def _read(lock_path: Path) -> dict:
         return {"schema": SCHEMA, "skills": {}}
 
 
+def _path_key(path: Path) -> str:
+    return Path(os.path.normcase(path.resolve())).as_posix()
+
+
+@contextmanager
+def _exclusive_update(path: Path):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.with_name(f".{path.name}.lck").open("a+b") as guard:
+        if os.name == "nt":
+            import msvcrt
+
+            guard.seek(0)
+            msvcrt.locking(guard.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(guard.fileno(), fcntl.LOCK_EX)
+        yield
+
+
 def _write(lock_path: Path, data: dict) -> None:
     lock_path = Path(lock_path)
     lock_path.parent.mkdir(parents=True, exist_ok=True)
@@ -98,6 +121,7 @@ def pin(unit_dir: Path, lock_path: Path, *, source: str = "", commit: str | None
     hashes = file_hashes(unit_dir)
     summary = _summary(result)
     entry = {
+        "name": summary["name"],
         "path": unit_dir.as_posix(),
         "source": source,
         "commit": commit,
@@ -112,10 +136,15 @@ def pin(unit_dir: Path, lock_path: Path, *, source: str = "", commit: str | None
         "tool_version": __version__,
         "ruleset": RULESET_VERSION,
     }
-    data = _read(lock_path)
-    data.setdefault("skills", {})[summary["name"]] = entry
-    data["schema"] = SCHEMA
-    _write(lock_path, data)
+    lock_path = Path(lock_path).resolve()
+    with _exclusive_update(lock_path):
+        data = _read(lock_path)
+        skills = data.setdefault("skills", {})
+        if data.get("schema", 1) == 1:
+            skills = {_path_key(Path(old["path"])): {"name": name, **old} for name, old in skills.items()}
+        skills[_path_key(unit_dir)] = entry
+        data.update(schema=SCHEMA, skills=skills)
+        _write(lock_path, data)
     return entry
 
 
@@ -141,15 +170,20 @@ def _compare(name: str, old: dict, new_hashes: dict[str, str], new_result: ScanR
 def verify(lock_path: Path, *, quiet: bool = False) -> list[Drift]:
     data = _read(lock_path)
     drifts: list[Drift] = []
-    for name, entry in sorted(data.get("skills", {}).items()):
+    entries = [(entry.get("name", key), entry) for key, entry in sorted(data.get("skills", {}).items())]
+    names = Counter(name for name, _ in entries)
+    for name, entry in entries:
         path = Path(entry["path"])
+        location = path.as_posix() if names[name] > 1 else None
         if not path.is_dir():
-            drifts.append(Drift(name=name, missing=True))
+            drifts.append(Drift(name=name, missing=True, path=location))
             continue
         hashes = file_hashes(path)
         if _tree(hashes) == entry.get("tree_hash"):
             continue
-        drifts.append(_compare(name, entry, hashes, None if quiet else scan_path(path)))
+        drift = _compare(name, entry, hashes, None if quiet else scan_path(path))
+        drift.path = location
+        drifts.append(drift)
     return drifts
 
 
@@ -163,6 +197,8 @@ def diff_dirs(old: Path, new: Path) -> Drift:
 
 def describe(drift: Drift, *, quiet: bool = False) -> list[str]:
     name = sanitize(drift.name, 120)
+    if drift.path:
+        name += f" ({sanitize(drift.path, 160)})"
     if drift.missing:
         return [f"changed: {name}: the installed folder is missing"]
     n = len(drift.added_files) + len(drift.removed_files) + len(drift.changed_files)

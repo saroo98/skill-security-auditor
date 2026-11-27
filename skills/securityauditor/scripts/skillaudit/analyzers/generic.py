@@ -23,7 +23,7 @@ def scan_text(text: str, rel: str, confidence: str = "low") -> list[Capability]:
     caps: list[Capability] = CapList()
 
     def add(kind: str, line: int, snippet: str, **detail: str | None) -> None:
-        cap = Capability(kind, rel, line, snippet.strip()[:300], confidence, tuple(sorted((k, v) for k, v in detail.items() if v)))
+        cap = Capability(kind, rel, line, snippet.strip(), confidence, tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in caps:
             caps.append(cap)
 

@@ -12,6 +12,7 @@ from . import shell
 
 CONF = "medium"
 _PH = re.compile(r"__S(\d+)__")
+_REGEXP_LITERAL = "/__RE__/"
 
 
 def lex(src: str) -> tuple[str, list[str]]:
@@ -55,7 +56,7 @@ def lex(src: str) -> tuple[str, list[str]]:
             while j < n and src[j] not in "/\n":
                 j += 2 if src[j] == "\\" else 1
             if j < n and src[j] == "/":
-                out.append("/__RE__/")
+                out.append(_REGEXP_LITERAL)
                 i = j + 1
                 prev_sig = '"'
                 continue
@@ -82,6 +83,7 @@ class _JS:
     NET = re.compile(r"\bfetch\s*\(|\bhttps?\.(?:request|get)\s*\(|\baxios(?:\.\w+)?\s*\(|\bgot(?:\.\w+)?\s*\(|"
                      r"new\s+XMLHttpRequest\b|new\s+WebSocket\s*\(|\bnavigator\.sendBeacon\s*\(|\bundici\.request\s*\(")
     EXEC = re.compile(r"\b(?:\w+\.)?(exec|execSync|spawn|spawnSync|execFile|execFileSync|fork)\s*\(")
+    REGEXP_EXEC = re.compile(re.escape(_REGEXP_LITERAL) + r"[dgimsuvy]*\s*\.\s*exec\s*\(")
     DYN = re.compile(r"\beval\s*\(|\bnew\s+Function\s*\(|\bvm\.(?:runIn\w+|Script)\b|\bFunction\s*\(\s*\"__S")
     ENV_DUMP = re.compile(r"JSON\.stringify\(\s*process\.env\s*[,)]|Object\.(?:entries|keys|values|assign)\([^)]*process\.env\b|"
                           r"\.\.\.\s*process\.env\b|=\s*process\.env\s*[;\n]")
@@ -100,7 +102,7 @@ class _JS:
 
     def add(self, kind: str, pos: int, **detail: str | None) -> None:
         line = self.line_of(pos)
-        snippet = self.lines[line - 1].strip()[:300] if line <= len(self.lines) else ""
+        snippet = self.lines[line - 1].strip() if line <= len(self.lines) else ""
         cap = Capability(kind, self.rel, line, snippet, CONF, tuple(sorted((k, v) for k, v in detail.items() if v)))
         if cap not in self.caps:
             self.caps.append(cap)
@@ -149,7 +151,10 @@ class _JS:
             if srcs:
                 taint[m.group(1)] = srcs[0]
         if cp_imported:
+            regexp_calls = {m.end() for m in self.REGEXP_EXEC.finditer(code)}
             for m in self.EXEC.finditer(code):
+                if m.end() in regexp_calls:
+                    continue
                 start = m.end() - 1
                 args = code[start + 1:_close(code, start)]
                 first = re.match(r"\s*\"__S(\d+)__\"", args)

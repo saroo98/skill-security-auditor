@@ -163,7 +163,7 @@ def _markdown(scores: dict, versions: dict, date: str, cases: list[Case], classe
         r = sc.get("real")
         if r:
             lines += ["", f"Real skills ({name}): {r['units']} skills; PASS {r['PASS']}, REVIEW {r['REVIEW']}, BLOCK {r['BLOCK']}; "
-                      f"unjustified blocks {r['unjustified_block']} ({r['unjustified_block_rate']:.1%}); PASS rate {r['pass_rate']:.1%}."]
+                      f"unjustified blocks {r['unjustified_block']} ({r['unjustified_block_rate']:.2%}); PASS rate {r['pass_rate']:.2%}."]
     return "\n".join(lines) + "\n"
 
 

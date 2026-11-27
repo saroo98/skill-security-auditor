@@ -6,6 +6,7 @@ from __future__ import annotations
 import base64
 import binascii
 import re
+from dataclasses import replace
 import unicodedata
 from urllib.parse import urlparse
 
@@ -60,7 +61,7 @@ def analyze(entry: FileEntry, depth: int = 0) -> list[Capability]:
     caps: list[Capability] = CapList()
 
     def add(kind: str, line: int | None, snippet: str, confidence: str = "high", **detail: str) -> None:
-        cap = Capability(kind, entry.rel, line, snippet[:300], confidence, tuple(sorted(detail.items())))
+        cap = Capability(kind, entry.rel, line, snippet, confidence, tuple(sorted(detail.items())))
         if cap not in caps:
             caps.append(cap)
 
@@ -101,7 +102,7 @@ def analyze(entry: FileEntry, depth: int = 0) -> list[Capability]:
                 line = text.count("\n", 0, m.start()) + 1
                 inner = _inner_caps(entry, decoded, line, depth)
                 if inner:
-                    add("obfuscation", line, f"encoded text decodes to: {decoded[:120]}", why="encoded payload")
+                    add("obfuscation", line, f"encoded text decodes to: {decoded}", why="encoded payload")
                     for cap in inner:
                         if cap not in caps:
                             caps.append(cap)
@@ -118,5 +119,5 @@ def _inner_caps(entry: FileEntry, decoded: str, line: int, depth: int) -> list[C
     for cap in markdown.prose_caps(sub, decoded, line):
         out.append(cap)
     for cap in analyze(sub, depth + 1):
-        out.append(Capability(cap.kind, cap.file, line, cap.snippet, cap.confidence, cap.detail))
+        out.append(replace(cap, line=line))
     return out

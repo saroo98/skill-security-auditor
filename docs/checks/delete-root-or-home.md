@@ -2,9 +2,9 @@
 
 Severity: critical. OWASP Agentic Skills Top 10: AST01.
 
-Deletes the home directory or the drive root.
+Deletes a system folder, the home directory, or the drive root.
 
-A recursive delete targets the home directory or the root of a drive.
+A recursive delete targets a core system folder such as `/etc` or `Windows/System32`, the entire home directory, or the root of a drive.
 
 ## Flagged
 

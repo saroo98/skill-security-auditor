@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import bisect
 import re
+from dataclasses import replace
+from textwrap import dedent
 
 from ..model import CapList, Capability, FileEntry
 from . import shell
@@ -37,7 +39,14 @@ CONCEAL = (
     re.compile(r"\b(silently|quietly|secretly|covertly|discreetly)\s+(append|send|upload|copy|run|execute|install|read|include|add|"
                r"delete|remove|modify|write|post|forward|attach|exfiltrate|download|fetch)\b", I),
 )
+QUIET_PREDICATE = re.compile(r"\b(?:(?P<actor>you|agents?|assistants?)\s+)?(?P<verb>not|would|will|may|might|could)\s*$", I)
 NOASK = re.compile(r"\bwithout\s+(asking|confirmation|confirming|approval|permission|prompting|consent|checking with|telling)\b", I)
+NOASK_PROHIBITION = re.compile(
+    r"\s*,\s*(?:(?:do not|don['’]t|never)\s+|"
+    r"(?:[\w-]+\s+){1,6}(?:is|are)\s+not\s+(?:applied|executed|performed|taken|allowed|permitted)\b)", I)
+NOASK_REPEAT_SETUP = re.compile(
+    r"\s+(?:the\s+)?(?:user|developer|operator)\s+to\s+"
+    r"(?:re[- ]?configure\s+it|configure\s+it\s+again)\b", I)
 FLAGS = re.compile(r"--dangerously-skip-permissions|--dangerously-bypass-approvals-and-sandbox|--yolo\b|\bbypassPermissions\b|"
                    r"--full-auto\b|--ask-for-approval\s+never\b", I)
 EXTERNAL = (
@@ -52,19 +61,28 @@ INSTALL_EXTRA = (
                r"appimage|scr|vbs)\b)", I),
     re.compile(r"\bdownload\s+and\s+(run|execute|install|open)\b[^.]{0,60}https?://", I),
 )
+# A location introduced by "find in" is a source. Look past it for the destination.
 EXFIL = re.compile(
     r"\b(send|upload|post|append|include|attach|forward|exfiltrate|copy|transmit|share|leak)\b[^;]{0,60}?\b(secrets?|credentials?|"
-    r"tokens?|passwords?|private key files?|private keys?|api keys?|\.env|ssh|cookies|\.aws)\b[^;]{0,60}?\b(to|into|with|in)\b", I)
+    r"tokens?|passwords?|private key files?|private keys?|api keys?|\.env|ssh|cookies|\.aws)\b"
+    r"[^;]{0,60}?\b(?P<relation>to|into|with|(?<!\bfind )in)\b", I)
 EXFIL_BENIGN = re.compile(r"\b(header|authorization|bearer|environment variable|public key)\b", I)
+LOCAL_ENVIRONMENT = re.compile(r"\s+(?:(?:the|your|its)\s+)?(?:local\s+)?environment variables?\s*[.!?]?\s*", I)
 IMPERATIVE_LEAD = re.compile(r"^\s*(?:(?:then|and|also|now|from now on|always|please|quietly|silently|secretly|covertly)"
                              r"[, ]+)*(?:you\s+(?:must|should|will|need to|can)\s+)?$", I)
 REVIEWER_WHO = re.compile(
-    r"\b(scanners?|auditors?|reviewers?|security (?:tools?|checks?|scans?|reviews?)|scanning agent|reviewing agent|ai (?:reviewing|"
-    r"scanning|auditing)|models? (?:reviewing|scanning)|if you are (?:an ai|a model|an llm|an assistant|a scanner|reviewing))\b", I)
+    r"\b((?:security )?(?:scanners?|auditors?|reviewers?)|security (?:tools?|checks?|scans?|reviews?)|scanning agent|"
+    r"reviewing agent|ai (?:reviewing|scanning|auditing)|models? (?:reviewing|scanning)|"
+    r"if you are (?:an ai|a model|an llm|an assistant|a scanner|reviewing))\b", I)
+REVIEWER_ADDRESS = re.compile(
+    r"\s*(?:>\s*)?(?:(?:note|message|instructions?)\s+)?(?:(?:to|for|dear)\s+)?(?:(?:any|all|the|a)\s+)?", I)
+REVIEWER_REQUEST = re.compile(r"[:,]|\b(?:must|should|shall|please)\b", I)
 REVIEWER_WHAT = re.compile(r"\b(mark|report|classify|rate|consider|respond|output|answer|reply|say|treat|label|flag)\b[^.]{0,40}?"
                            r"\b(safe|benign|clean|pass|no (?:issues|findings|problems|risks?)|trusted|harmless|already audited|approved)\b", I)
-REVIEWER_PASS = re.compile(r"(?i:\b(reply|respond|answer|output|say|print|return|antworte\w*|responde\w*|r[ée]ponds?|rispondi|"
-                           r"antwoord)\b)[^.\n]{0,40}\bPASS\b(?!\s*[/|,]|\s+or\s+FAIL)")
+REVIEWER_PASS = re.compile(
+    r"(?:^|[,:;])\s*(?i:(?:(?:then|and|also|now|please|bitte|por favor)\s+)*"
+    r"(?:reply|respond|answer|output|say|print|return|antworte\w*|responde\w*|r[ée]ponds?|rispondi|antwoord)\b)"
+    r"[^.\n]{0,40}\bPASS\b(?!\s*[/|,]|\s+or\s+FAIL)")
 DESCRIPTIVE = (
     re.compile(r"\b(tells|telling|tries to|trying to|attempts? to|attempting to|asks|asking|instructs|instructing|causes|causing|"
                r"makes|making|tricks|tricking|convinces|convincing|gets|getting)\b[^.]{0,40}?\b(agents?|models?|assistants?|ais?|"
@@ -90,6 +108,9 @@ _IMG_ALT = re.compile(r"!\[([^\]]+)\]\(")
 _BANG = re.compile(r"!`([^`\n]+)`")
 _LIST = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+")
 _SENT = re.compile(r"(?<=[.!?])\s+(?=\S)")
+_HEADING = re.compile(r"^([ \t]*)(#{1,6})\s+(.+?)\s*#*\s*$")
+_INSTALL_HEADING = re.compile(r"^(npm|pnpm|yarn|bun)$|\b(install(?:ation|ing)?|dependenc(?:y|ies))\b", I)
+_INSTALL_PROSE = re.compile(r"\binstall(?:s|ing)?\b[^.]{0,60}\b(?:npm|pnpm|yarn|bun|packages|dependencies)\b", I)
 
 
 def _negated(prefix: str) -> bool:
@@ -101,13 +122,22 @@ def _descriptive(prefix: str) -> bool:
     return any(p.search(prefix) for p in DESCRIPTIVE)
 
 
+def _verdict_request(text: str) -> re.Match | None:
+    reviewer = REVIEWER_WHO.search(text)
+    if reviewer and REVIEWER_ADDRESS.fullmatch(text, endpos=reviewer.start()):
+        request = REVIEWER_WHAT.search(text, reviewer.end())
+        if request and REVIEWER_REQUEST.search(text, reviewer.end(), request.start()):
+            return request
+    return REVIEWER_PASS.search(text)
+
+
 class _Prose:
     def __init__(self, entry: FileEntry) -> None:
         self.entry = entry
         self.caps: list[Capability] = CapList()
 
     def add(self, kind: str, line: int, snippet: str, confidence: str = "high", **detail: str) -> None:
-        cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split())[:300], confidence, tuple(sorted(detail.items())))
+        cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split()), confidence, tuple(sorted(detail.items())))
         if cap not in self.caps:
             self.caps.append(cap)
 
@@ -134,12 +164,20 @@ class _Prose:
             for m in OVERRIDE.finditer(clause):
                 if not UNTRUSTED_SOURCE.search(clause[m.start(): m.end() + 40]):
                     hit("instruction.override", m, cstart)
-            for index, pat in enumerate(CONCEAL):
+            for pat in CONCEAL:
                 for m in pat.finditer(clause):
+                    if pat is CONCEAL[-1]:
+                        predicate = QUIET_PREDICATE.search(clause, endpos=m.start())
+                        if predicate and (predicate.group("verb").lower() == "not" or not predicate.group("actor")):
+                            continue
                     hit("instruction.conceal", m, cstart, negatable=pat is CONCEAL[-1])
             for m in NOASK.finditer(clause):
-                before = text[: cstart + m.start()]
-                if NEG.search(before):
+                before = clause[:m.start()]
+                if NEG.search(before.replace("’", "'")):
+                    continue
+                if not before.strip() and NOASK_PROHIBITION.match(clause, m.end()):
+                    continue
+                if m[1].lower() == "asking" and NOASK_REPEAT_SETUP.match(clause, m.end()):
                     continue
                 hit("instruction.noask", m, cstart, negatable=False)
             for m in FLAGS.finditer(clause):
@@ -152,13 +190,14 @@ class _Prose:
                     hit("instruction.install-extra", m, cstart)
             if not EXFIL_BENIGN.search(clause):
                 for m in EXFIL.finditer(clause):
+                    if m.group("relation").lower() in ("to", "into") and LOCAL_ENVIRONMENT.fullmatch(clause, m.end()):
+                        continue
                     if IMPERATIVE_LEAD.match(clause[: m.start()]):
                         hit("instruction.override", m, cstart, what="exfil")
-        if (REVIEWER_WHO.search(text) and REVIEWER_WHAT.search(text)) or REVIEWER_PASS.search(text):
-            m = REVIEWER_WHO.search(text) or REVIEWER_PASS.search(text)
-            if not _descriptive(context + " " + text[: m.start()]):
-                self.add("instruction.reviewer", line, text)
-                found.append("instruction.reviewer")
+        request = _verdict_request(text)
+        if request and not _descriptive(context + " " + text[: request.start()]):
+            self.add("instruction.reviewer", line, text)
+            found.append("instruction.reviewer")
         return found
 
     def run_lines(self, lines: list[tuple[int, str]], hidden: bool = False) -> str:
@@ -202,11 +241,11 @@ def _frontmatter(text: str) -> tuple[list[tuple[int, str]], int]:
         m = re.match(r"^description:\s*(.*)$", raw)
         if m:
             value = m.group(1).strip()
-            capturing = value in ("", "|", ">", "|-", ">-")
-            if not capturing:
+            capturing = True
+            if value not in ("", "|", ">", "|-", ">-", "|+", ">+"):
                 desc.append((i + 1, value.strip("'\"")))
             continue
-        if capturing:
+        if capturing and raw.strip():
             if raw.startswith((" ", "\t")):
                 desc.append((i + 1, raw.strip()))
             else:
@@ -270,8 +309,8 @@ def analyze(entry: FileEntry) -> list[Capability]:
     text = entry.text or ""
     prose = _Prose(entry)
     desc, body_start = _frontmatter(text)
-    for number, value in desc:
-        prose.sentence(value, number)
+    if desc:
+        _blocks(prose, desc)
     all_lines = text.split("\n")
     visible: list[tuple[int, str]] = []
     in_fence: str | None = None
@@ -300,15 +339,16 @@ def analyze(entry: FileEntry) -> list[Capability]:
     body = "\n".join(t for _, t in visible)
     first_line = visible[0][0] if visible else 1
     hidden_segments: list[tuple[int, str]] = []
+    comment_lines: set[int] = set()
 
-    def collect(pattern: re.Pattern, s: str) -> str:
-        def repl(m: re.Match) -> str:
-            line = first_line + s.count("\n", 0, m.start())
-            hidden_segments.append((line, m.group(1)))
-            return "\n" * m.group(0).count("\n")
-        return pattern.sub(repl, s)
+    def strip_comment(m: re.Match) -> str:
+        line = first_line + body.count("\n", 0, m.start())
+        breaks = m[0].count("\n")
+        hidden_segments.append((line, m[1]))
+        comment_lines.update(range(line, line + breaks + 1))
+        return "\n" * breaks
 
-    body = collect(_COMMENT, body)
+    body = _COMMENT.sub(strip_comment, body)
     for pattern in (_LINK_TITLE, _IMG_ALT):
         for m in pattern.finditer(body):
             hidden_segments.append((first_line + body.count("\n", 0, m.start()), m.group(1)))
@@ -329,7 +369,39 @@ def analyze(entry: FileEntry) -> list[Capability]:
         for cap in configs.frontmatter_caps(entry):
             if cap not in prose.caps:
                 prose.caps.append(cap)
-    return prose.caps
+    return _documented_installs(prose.caps, body_lines, all_lines, comment_lines)
+
+
+def _documented_installs(
+    caps: list[Capability], visible: list[tuple[int, str]], source: list[str], comment_lines: set[int]
+) -> list[Capability]:
+    installs = {c for c in caps if c.kind == "pkg.install" and c.get("fenced") == c.get("project_dependency") == "yes"}
+    if not installs:
+        return caps
+    candidates = {c.line for c in installs} - comment_lines
+    documented = set()
+    install_headings: list[tuple[int, int]] = []
+    introduced = False
+    for number, raw in visible:
+        heading = _HEADING.match(raw)
+        if heading:
+            indent, level = len(heading[1]), len(heading[2])
+            while install_headings and (install_headings[-1][0] >= level or install_headings[-1][1] > indent):
+                install_headings.pop()
+            if _INSTALL_HEADING.search(heading[3].strip("\x60")):
+                install_headings.append((level, indent))
+        if raw.strip():
+            introduced = bool(_INSTALL_PROSE.search(raw))
+        if number in candidates:
+            command = source[number - 1]
+            indent = len(command) - len(command.lstrip())
+            if introduced or any(section_indent <= indent for _, section_indent in install_headings):
+                documented.add(number)
+    return [
+        replace(cap, detail=tuple(sorted(dict(cap.detail, documented="yes").items())))
+        if cap in installs and cap.line in documented else cap
+        for cap in caps
+    ]
 
 
 def _fenced(prose: _Prose, lang: str, lines: list[str], start: int) -> None:
@@ -341,12 +413,13 @@ def _fenced(prose: _Prose, lang: str, lines: list[str], start: int) -> None:
     if kind == "shell":
         lines = [re.sub(r"^\s*[$>]\s+", "", ln) for ln in lines]
     text = "\n".join(lines)
+    if kind == "python":
+        text = dedent(text)
     entry = prose.entry
     sub = FileEntry(entry.path, entry.rel, kind, entry.role, text, entry.encoding, len(text))
-    analyzer = {"shell": shell.analyze, "python": python_ast.analyze, "powershell": powershell.analyze,
-                "javascript": javascript.analyze}[kind]
-    for cap in analyzer(sub):
-        moved = Capability(cap.kind, cap.file, (cap.line or 1) + start - 1, cap.snippet, cap.confidence,
-                           tuple(sorted(dict(cap.detail, fenced="yes").items())))
+    analyzers = {"python": python_ast.analyze, "powershell": powershell.analyze, "javascript": javascript.analyze}
+    caps = shell.analyze(sub, documentation=True) if kind == "shell" else analyzers[kind](sub)
+    for cap in caps:
+        moved = replace(cap, line=(cap.line or 1) + start - 1, detail=tuple(sorted(dict(cap.detail, fenced="yes").items())))
         if moved not in prose.caps:
             prose.caps.append(moved)

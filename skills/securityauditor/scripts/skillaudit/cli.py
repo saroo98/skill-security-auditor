@@ -126,7 +126,7 @@ def cmd_check(args: argparse.Namespace) -> int:
             fetched = download(source.location, home() / "downloads" / name, source=source)
         check_id, qdir = place(source, fetched)
     except (FetchError, UnsafeArchive, OSError) as exc:
-        print(f"Cannot check {args.address}: {' '.join(str(exc).split())}", file=sys.stderr)
+        print(f"Cannot check: {' '.join(str(exc).split())}", file=sys.stderr)
         return 2
     target = qdir / source.subpath if source.subpath else qdir
     if source.subpath and not target.resolve().is_relative_to(qdir.resolve()):
@@ -190,7 +190,7 @@ def cmd_check(args: argparse.Namespace) -> int:
                 unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
     packets = [] if args.static else _packets(result, target)
     if source.subpath:
-        check_id = hashlib.sha256(f"{full_tree}\0{source.subpath}".encode()).hexdigest()[:12]
+        check_id = hashlib.sha256(f"{full_tree}\0{source.subpath}".encode()).hexdigest()
     record = home() / "checks" / f"{check_id}.json"
     record.parent.mkdir(parents=True, exist_ok=True)
     record.write_text(json.dumps({
@@ -218,7 +218,7 @@ def cmd_install(args: argparse.Namespace) -> int:
         print(f"Cannot install {args.check_id}: {message}", file=sys.stderr)
         return 2
 
-    if not re.fullmatch(r"[0-9a-f]{12}", args.check_id):
+    if not re.fullmatch(r"(?:[0-9a-f]{12}|[0-9a-f]{64})", args.check_id):
         return fail("not a check id; run check first and use the id it prints")
     record_path = home() / "checks" / f"{args.check_id}.json"
     try:
@@ -233,6 +233,9 @@ def cmd_install(args: argparse.Namespace) -> int:
     if not qdir.is_dir() or tree_hash(qdir) != record["tree_hash"]:
         return fail("the quarantine was modified or removed since the check; run check again")
     source_dir = qdir / record["subpath"] if record["subpath"] else qdir
+    guide = next((p for p in source_dir.glob("SKILL.md") if p.name == "SKILL.md"), None)
+    if guide is None or guide.is_symlink() or not guide.is_file():
+        return fail("check a skill folder that contains SKILL.md at its root")
     name = re.sub(r"[^A-Za-z0-9._-]+", "-", record["unit_names"][0]).strip(".-") or "skill"
     target = Path(args.to) / name
     if target.exists():

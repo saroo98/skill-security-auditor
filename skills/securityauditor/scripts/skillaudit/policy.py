@@ -74,7 +74,7 @@ def _check_for(cap: Capability) -> str | None:
         return _flow_check(cap)
     if cap.kind == "fs.delete":
         target = cap.get("target")
-        if target in ("root", "home"):
+        if target in ("root", "home", "system"):
             return "delete-root-or-home"
         if target == "absolute":
             return "write-outside-workspace"
@@ -90,7 +90,7 @@ def decide(caps: list[Capability], not_checked: list[NotChecked], *, declared: s
            unreferenced_low_roles: set[str] | frozenset[str] = frozenset()) -> list[Finding]:
     """Map capabilities to findings. ``declared`` is None until declarations are analyzed."""
     findings: list[Finding] = []
-    seen: set[tuple[str, str, int | None, str]] = set()
+    seen: set[tuple[str, str, int | None, str, str | None]] = set()
 
     def add(check_id: str, cap: Capability, message: str | None = None, severity: str | None = None) -> None:
         check = CHECKS[check_id]
@@ -100,18 +100,22 @@ def decide(caps: list[Capability], not_checked: list[NotChecked], *, declared: s
         # code shown in reference documents is mostly examples; code in SKILL.md is what the agent is told to run
         if cap.get("fenced") == "yes" and not cap.file.endswith("SKILL.md") and SEVERITY_RANK[severity] > SEVERITY_RANK["medium"]:
             severity = "medium"
-        key = (check_id, cap.file, cap.line, cap.snippet)
+        key = (check_id, cap.file, cap.line, cap.snippet, cap.evidence_digest)
         if key in seen:
             return
         seen.add(key)
-        findings.append(make_finding(check_id, severity, cap.file, cap.line, message or check.title, cap.snippet))
+        findings.append(make_finding(check_id, severity, cap.file, cap.line, message or check.title, cap.snippet,
+                                     evidence_digest=cap.evidence_digest))
+
+    def is_declared(cap: Capability) -> bool:
+        return cap.kind in (declared or ()) or (cap.kind == "pkg.install" and cap.get("documented") == "yes")
 
     flows_by_file = {c.file for c in caps if c.kind == "flow" and c.get("source") == "secret.read"}
     for cap in caps:
         check_id = _check_for(cap)
         if not check_id:
             continue
-        if declared is not None and cap.kind in ("pkg.install", "fs.write.outside") and cap.kind in declared:
+        if declared is not None and cap.kind in ("pkg.install", "fs.write.outside") and is_declared(cap):
             add(check_id, cap, severity="low")  # the skill says it does this
         else:
             add(check_id, cap)
@@ -126,7 +130,7 @@ def decide(caps: list[Capability], not_checked: list[NotChecked], *, declared: s
         for cap in caps:
             if cap.kind not in DECLARABLE or cap.file in unreferenced_low_roles:
                 continue
-            if cap.kind in declared:
+            if is_declared(cap):
                 if cap.kind == "net.outbound":
                     add("declared-network", cap)
                 continue

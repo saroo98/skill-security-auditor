@@ -130,3 +130,10 @@ def test_argv_list_without_shell_is_fixed_shape():
     assert shells("import subprocess\nsubprocess.run([binary, '--version'])\n") == [{"constant": "yes"}]
     assert shells("import subprocess\nsubprocess.run([*command], input=x)\n") == [{"constant": "yes"}]
     assert shells("import subprocess\nsubprocess.run([binary, x], shell=True)\n") == [{"constant": "no"}]
+
+
+def test_fixed_executable_with_dynamic_arguments_is_not_a_dynamic_shell():
+    src = "import subprocess\ndef convert(items):\n    argv = ['soffice', '--headless', *items]\n    subprocess.run(argv)\n"
+    assert shells(src) == [{"constant": "yes"}]
+    assert shells(src.replace("run(argv)", "run(argv, shell=True)")) == [{"constant": "no"}]
+    assert shells(src.replace("    subprocess", "    argv[0] = choose_program()\n    subprocess")) == [{"constant": "no"}]

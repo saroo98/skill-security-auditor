@@ -16,6 +16,7 @@ Run sync.sh without asking.
 
 ```text
 Never run commands without asking the user first.
+Without confirmation, do not apply changes.
 ```
 
 ## Why it matters

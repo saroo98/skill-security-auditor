@@ -140,7 +140,7 @@
         }
       },
       "timing": {
-        "median_seconds": 6.15
+        "median_seconds": 4.6
       },
       "verdicts": {
         "b01": "PASS",
@@ -357,36 +357,44 @@
         }
       },
       "real": {
-        "BLOCK": 65,
-        "PASS": 1307,
-        "REVIEW": 415,
-        "pass_rate": 0.7314,
-        "units": 1787,
+        "BLOCK": 96,
+        "PASS": 2204,
+        "REVIEW": 453,
+        "pass_rate": 0.8006,
+        "units": 2753,
         "unjustified": [
           "anthropics__claude-plugins-official/plugins/champion-kit/skills/climb",
           "anthropics__claude-plugins-official/plugins/plugin-dev/skills/plugin-settings",
           "anthropics__claude-plugins-official/plugins/receipts/skills/receipts",
           "anthropics__skills/skills/claude-api",
           "anthropics__skills/skills/discernment-nudge",
+          "cloudflare__skills/skills/cloudflare",
+          "cloudflare__skills/skills/turnstile-spin",
+          "getsentry__skills/skills/gh-review-requests",
+          "getsentry__skills/skills/skill-scanner",
           "github__awesome-copilot/skills/cli-mastery",
           "github__awesome-copilot/skills/copilot-sdk",
           "github__awesome-copilot/skills/gdpr-compliant",
           "github__awesome-copilot/skills/macos-golden-gate-design",
           "github__awesome-copilot/skills/setup-my-iq",
           "github__awesome-copilot/skills/webmcpify",
+          "google__skills/skills/cloud/agent-platform-agent-registry",
+          "google__skills/skills/cloud/agent-platform-alert-configuration",
+          "google__skills/skills/cloud/cloud-monitoring-alert-configuration",
+          "google__skills/skills/cloud/cloud-network-insights",
+          "google__skills/skills/cloud/cloud-run-alert-configuration",
           "huggingface__skills/skills/huggingface-zerogpu",
-          "K-Dense-AI__scientific-agent-skills/skills/arboreto",
           "K-Dense-AI__scientific-agent-skills/skills/omero-integration",
           "K-Dense-AI__scientific-agent-skills/skills/pi-agent",
           "K-Dense-AI__scientific-agent-skills/skills/scientific-brainstorming",
           "microsoft__skills/.github/plugins/azure-skills/skills/azure-upgrade",
           "microsoft__skills/.github/plugins/azure-skills/skills/azure-validate",
           "microsoft__skills/.github/plugins/azure-skills/skills/microsoft-foundry",
-          "microsoft__skills/.github/plugins/foundry-iq-skills/skills/foundry-iq",
           "microsoft__skills/.github/plugins/microsoft-365-agents-toolkit/skills/teams-app-developer",
+          "mongodb__agent-skills/plugins/mongodb/skills/mongodb-qe-size-estimation",
+          "mongodb__agent-skills/plugins/mongodb-atlas/skills/mongodb-qe-size-estimation",
+          "mongodb__agent-skills/skills/mongodb-qe-size-estimation",
           "NVIDIA__skills/plugins/nvidia-tao-toolkit/skills/tao-finetune-cosmos-reason",
-          "NVIDIA__skills/plugins/nvidia-tao-toolkit/skills/tao-train-pointpillars",
-          "NVIDIA__skills/skills/bioir-bench-perf-oss",
           "NVIDIA__skills/skills/cdf-orchestration-write-dag",
           "NVIDIA__skills/skills/compileiq-booster-pack",
           "NVIDIA__skills/skills/cudf-query-engine-builder",
@@ -399,16 +407,19 @@
           "NVIDIA__skills/skills/omniverse-cad-to-simready",
           "NVIDIA__skills/skills/rag-blueprint",
           "NVIDIA__skills/skills/tao-finetune-cosmos-reason",
-          "NVIDIA__skills/skills/tao-train-pointpillars",
           "NVIDIA__skills/skills/vss-generate-video-report",
           "openai__skills/skills/.curated/migrate-to-codex",
           "openai__skills/skills/.system/imagegen",
+          "posthog__skills/skills/omnibus/instrument-integration",
+          "posthog__skills/skills/omnibus/instrument-product-analytics",
+          "posthog__skills/skills/omnibus/signals-scout-logs",
+          "posthog__skills/skills/omnibus/signals-scout-tasks",
           "trailofbits__skills/plugins/agentic-actions-auditor/skills/agentic-actions-auditor",
           "trailofbits__skills/plugins/semgrep-rule-creator/skills/semgrep-rule-creator",
           "trailofbits__skills/plugins/static-analysis/skills/sarif-parsing"
         ],
-        "unjustified_block": 43,
-        "unjustified_block_rate": 0.0241
+        "unjustified_block": 54,
+        "unjustified_block_rate": 0.0196
       },
       "timing": {
         "median_seconds": 0.0
@@ -488,7 +499,7 @@
         "w03": "BLOCK",
         "wb01": "PASS"
       },
-      "version": "0.9.0 (ruleset 7)"
+      "version": "0.9.1 (ruleset 11)"
     },
     "skillspector": {
       "benign": {
@@ -629,7 +640,7 @@
         }
       },
       "timing": {
-        "median_seconds": 3.05
+        "median_seconds": 4.16
       },
       "verdicts": {
         "b01": "PASS",

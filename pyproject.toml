@@ -1,14 +1,15 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77.0.3"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "skill-security-auditor"
-version = "0.9.0"
+version = "0.9.1"
 description = "Check agent skills before installing them: quarantine, static checks, verdict, pinned install."
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = []
 dependencies = []
 keywords = [

