@@ -1,0 +1,10 @@
+id = "b02"
+class = "benign"
+technique = "Documents a setup step and links to documentation"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = []
+expect = "PASS"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: b02\ndescription: Formats local notes.\n---\n\n# Notes helper\n\nSetup: `pip install rich`. Docs: https://docs.python.org/3/\n"

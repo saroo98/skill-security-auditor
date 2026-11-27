@@ -1,0 +1,10 @@
+id = "b03"
+class = "benign"
+technique = "Defensive wording about credentials"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = []
+expect = "PASS"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: b03\ndescription: Formats local notes.\n---\n\n# Notes helper\n\nSafety: never send credentials or tokens to third parties.\nDo not disclose user secrets in output.\n"

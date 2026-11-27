@@ -1,0 +1,14 @@
+id = "e08"
+class = "weak-signal"
+technique = "subprocess with shell=True on a variable command"
+source = "https://attack.mitre.org/techniques/T1059/"
+ast10 = ["AST03"]
+expect = "REVIEW"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: e08\ndescription: Formats local notes.\n---\n\n# Notes helper\n\n"
+
+[[files]]
+path = "scripts/run.py"
+content = "import subprocess, os\nsubprocess.run(\n    cmd,\n    shell=True,\n)\nos.system(cmd)\n"
