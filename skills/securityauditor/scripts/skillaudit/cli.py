@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import json
+import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -19,7 +22,7 @@ from .output.text import render_text
 from .packet import LIMIT, build_packet, linked_markdown
 from .quarantine import UnsafeArchive, archive_commit, cache_get, cache_put, home, place, tree_hash
 
-SUBCOMMANDS = ("scan", "check", "pin", "verify", "diff")
+SUBCOMMANDS = ("scan", "check", "install", "pin", "verify", "diff")
 CHECK_EXIT = {"PASS": 0, "BLOCK": 1, "REVIEW": 3}
 
 
@@ -136,6 +139,15 @@ def cmd_check(args: argparse.Namespace) -> int:
                                               f"Name matches well-known {imitated} under a different owner", source.display))
             unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
     packets = [] if args.static else _packets(result, target)
+    if source.subpath:
+        check_id = hashlib.sha256(f"{full_tree}\0{source.subpath}".encode()).hexdigest()[:12]
+    record = home() / "checks" / f"{check_id}.json"
+    record.parent.mkdir(parents=True, exist_ok=True)
+    record.write_text(json.dumps({
+        "quarantine": qdir.name, "tree_hash": full_tree, "subpath": source.subpath, "source": source.display,
+        "commit": archive_commit(fetched) if fetched is not None else None,
+        "verdict": _final_verdict(result), "unit_names": [u.name for u in result.units],
+    }, sort_keys=True), encoding="utf-8")
     report = home() / "reports" / f"{check_id}.txt"
     report.parent.mkdir(parents=True, exist_ok=True)
     report.write_text(render_text(result), encoding="utf-8")
@@ -147,6 +159,47 @@ def cmd_check(args: argparse.Namespace) -> int:
         print("\n\n".join(packets))
     print(f"check-id: {check_id}")
     return CHECK_EXIT[verdict]
+
+
+def cmd_install(args: argparse.Namespace) -> int:
+    from . import lock
+
+    def fail(message: str) -> int:
+        print(f"Cannot install {args.check_id}: {message}", file=sys.stderr)
+        return 2
+
+    if not re.fullmatch(r"[0-9a-f]{12}", args.check_id):
+        return fail("not a check id; run check first and use the id it prints")
+    record_path = home() / "checks" / f"{args.check_id}.json"
+    try:
+        record = json.loads(record_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return fail("unknown check id; run check first")
+    if record.get("verdict") == "BLOCK":
+        return fail("the check verdict was BLOCK; installing a blocked skill is not supported")
+    if len(record.get("unit_names", [])) != 1:
+        return fail("the checked folder holds several skills; check the path of one skill")
+    qdir = home() / "quarantine" / record["quarantine"]
+    if not qdir.is_dir() or tree_hash(qdir) != record["tree_hash"]:
+        return fail("the quarantine was modified or removed since the check; run check again")
+    source_dir = qdir / record["subpath"] if record["subpath"] else qdir
+    name = re.sub(r"[^A-Za-z0-9._-]+", "-", record["unit_names"][0]).strip(".-") or "skill"
+    target = Path(args.to) / name
+    if target.exists():
+        return fail(f"{target} already exists; remove it or choose another --to folder")
+    expected = tree_hash(source_dir)
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(source_dir, target, symlinks=False)
+    except OSError as exc:
+        return fail(" ".join(str(exc).split()))
+    if tree_hash(target) != expected:
+        shutil.rmtree(target, ignore_errors=True)
+        return fail("the copied files do not match the checked files; nothing was installed")
+    lock.pin(target, Path(args.lock), source=record.get("source", ""), commit=record.get("commit"),
+             model_reviewed=args.model_reviewed)
+    print(f"installed {name} to {target}  tree {expected[:12]}")
+    return 0
 
 
 def cmd_pin(args: argparse.Namespace) -> int:
@@ -199,6 +252,13 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--static", action="store_true", help="static checks only; print no review packet")
     check.add_argument("--no-external", action="store_true", help="do not run other installed scanners")
     check.set_defaults(func=cmd_check)
+
+    install = sub.add_parser("install", help="copy the files a check approved into a skills folder and pin them")
+    install.add_argument("check_id")
+    install.add_argument("--to", required=True, help="skills folder to install into")
+    install.add_argument("--lock", default="skill.lock.json")
+    install.add_argument("--model-reviewed", action="store_true")
+    install.set_defaults(func=cmd_install)
 
     pin = sub.add_parser("pin", help="record a skill folder as approved in a lockfile")
     pin.add_argument("target")
