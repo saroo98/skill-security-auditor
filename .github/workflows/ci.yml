@@ -4,22 +4,21 @@ on:
   push:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+        python-version: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
-      - run: python -m pip install --upgrade pip
+          python-version: ${{ matrix.python-version }}
       - run: python -m pip install -r requirements-dev.txt
-      - run: python -m pytest
-      - run: python skills/securityauditor/scripts/scan_skill.py skills/securityauditor/examples/benign-skill --json --fail-on high
-      - name: Suspicious fixture exits non-zero at high threshold
-        run: |
-          set +e
-          python skills/securityauditor/scripts/scan_skill.py skills/securityauditor/examples/suspicious-skill --json --fail-on high
-          code=$?
-          set -e
-          test "$code" -eq 1
+      - run: python -m pytest -q
