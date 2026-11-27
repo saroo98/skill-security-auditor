@@ -148,3 +148,20 @@ def test_cache_roundtrip(tmp_path):
     cache_put("t" * 64, "0", {"verdict": "PASS"})
     assert cache_get("t" * 64, "0") == {"verdict": "PASS"}
     assert cache_get("t" * 64, "1") is None
+
+
+def test_tree_hash_survives_unreadable_file(tmp_path, monkeypatch):
+    # antivirus software can refuse to open a file; the hash must still be computed
+    d = tmp_path / "d"
+    d.mkdir()
+    (d / "ok.txt").write_text("1")
+    (d / "blocked.json").write_text("{}")
+    real = quarantine.Path.read_bytes
+
+    def fake(self):
+        if self.name == "blocked.json":
+            raise OSError(22, "Invalid argument")
+        return real(self)
+
+    monkeypatch.setattr(quarantine.Path, "read_bytes", fake)
+    assert len(tree_hash(d)) == 64

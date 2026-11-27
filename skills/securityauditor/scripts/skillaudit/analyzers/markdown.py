@@ -315,6 +315,12 @@ def analyze(entry: FileEntry) -> list[Capability]:
     for line, segment in hidden_segments:
         seg_lines = [(line + i, t) for i, t in enumerate(segment.strip().split("\n"))]
         _blocks(prose, seg_lines, hidden=True)
+    if entry.rel.split("/")[-1] == "SKILL.md":
+        from . import configs
+
+        for cap in configs.frontmatter_caps(entry):
+            if cap not in prose.caps:
+                prose.caps.append(cap)
     return prose.caps
 
 

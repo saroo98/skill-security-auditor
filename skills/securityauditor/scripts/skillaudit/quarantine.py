@@ -153,7 +153,11 @@ def tree_hash(root: Path) -> str:
             if path.is_symlink():
                 continue
             rel = path.relative_to(root).as_posix()
-            lines.append(f"{rel}\0{hashlib.sha256(path.read_bytes()).hexdigest()}\n")
+            try:
+                digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            except OSError as exc:  # e.g. antivirus refused to open the file
+                digest = f"unreadable:{exc.errno}"
+            lines.append(f"{rel}\0{digest}\n")
     lines.sort()
     return hashlib.sha256("".join(lines).encode("utf-8", "surrogatepass")).hexdigest()
 

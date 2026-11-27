@@ -101,7 +101,7 @@ def cmd_check(args: argparse.Namespace) -> int:
                 name = name.replace(".tar.gz", ".zip")
             fetched = download(source.location, home() / "downloads" / name, source=source)
         check_id, qdir = place(source, fetched)
-    except (FetchError, UnsafeArchive) as exc:
+    except (FetchError, UnsafeArchive, OSError) as exc:
         print(f"Cannot check {args.address}: {' '.join(str(exc).split())}", file=sys.stderr)
         return 2
     target = qdir / source.subpath if source.subpath else qdir

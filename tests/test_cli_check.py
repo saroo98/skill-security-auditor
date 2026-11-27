@@ -104,3 +104,14 @@ def test_help_lists_check(capsys):
     with pytest.raises(SystemExit):
         main(["--help"])
     assert "check" in capsys.readouterr().out
+
+
+def test_os_error_during_quarantine_is_one_line(tmp_path, capsys, monkeypatch):
+    skill = make(tmp_path / "s", {"SKILL.md": FM})
+
+    def boom(*a, **k):
+        raise PermissionError(13, "Access is denied")
+
+    monkeypatch.setattr(cli, "place", boom)
+    code, out, err = run(capsys, str(skill))
+    assert code == 2 and "Access is denied" in err and len(err.strip().splitlines()) == 1

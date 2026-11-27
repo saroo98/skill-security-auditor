@@ -7,7 +7,7 @@ import ipaddress
 import re
 
 SECRET_PATH_PATTERNS: tuple[str, ...] = (
-    "*.ssh/id_*", "*.ssh/config", "*.ssh/authorized_keys", "*.aws/credentials", "*.aws/config",
+    "*.ssh", "*.ssh/", "*.ssh/*", "*.aws", "*.aws/", "*.aws/*", "*.gnupg", "*.gnupg/",
     "*.config/gcloud*", "*.azure/*", "*.env", "*.env.*", "*.netrc", "*.npmrc", "*.pypirc", "*.git-credentials",
     "*.kube/config", "*.docker/config.json", "*Login Data", "*/Cookies", "*.claude/.credentials.json",
     "*.codex/auth.json", "*.gnupg/*", "*keychain*", "*/wallet.dat",

@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Callable
 
 from . import policy
-from .analyzers import generic, hidden, javascript, legacy, markdown, powershell, python_ast, shell
+from .analyzers import configs, generic, hidden, javascript, legacy, markdown, powershell, python_ast, shell
 from .discovery import discover
 from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, verdict_for
 from .quarantine import tree_hash
@@ -22,6 +22,9 @@ ANALYZERS: dict[str, Callable[[FileEntry], list[Capability]]] = {
     "powershell": powershell.analyze,
     "other-source": generic.analyze,
     "markdown": markdown.analyze,
+    "json": configs.analyze,
+    "yaml": configs.analyze,
+    "toml": configs.analyze,
 }
 _NAME = re.compile(r"^name:\s*['\"]?([^'\"\n]+?)['\"]?\s*$", re.MULTILINE)
 
@@ -52,6 +55,37 @@ def analyze_entry(entry: FileEntry) -> list[Capability]:
         if cap not in caps:
             caps.append(cap)
     return caps
+
+
+def config_problems(entry: FileEntry) -> list[NotChecked]:
+    if entry.text is None:
+        return []
+    if entry.role == "config" and entry.kind in ("json", "yaml", "toml"):
+        return [NotChecked(entry.rel, f"unparsed {entry.kind}: {p}", "medium") for p in configs.problems(entry)[:1]]
+    if entry.rel.split("/")[-1] == "SKILL.md":
+        _, problems = configs.parse_frontmatter(entry.text)
+        return [NotChecked(entry.rel, f"unparsed frontmatter: {problems[0]}", "medium")] if problems else []
+    return []
+
+
+def resolve_unprompted(caps: list[Capability], analyzed: set[str]) -> list[Capability]:
+    """Decide for each unprompted item whether the code it runs was analyzed in this scan."""
+    out: list[Capability] = []
+    for cap in caps:
+        if cap.kind != "unprompted" or cap.get("analyzed"):
+            out.append(cap)
+            continue
+        script = cap.get("script")
+        if cap.get("remote_package") == "yes":
+            value = "no"
+        elif script:
+            base = cap.file.rsplit("/", 1)[0] + "/" if "/" in cap.file else ""
+            value = "yes" if any(r == script or r == base + script or r.endswith("/" + script) for r in analyzed) else "no"
+        else:
+            value = "yes"
+        out.append(Capability(cap.kind, cap.file, cap.line, cap.snippet, cap.confidence,
+                              tuple(sorted(dict(cap.detail, analyzed=value).items()))))
+    return out
 
 
 def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
@@ -87,6 +121,8 @@ def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
         capabilities: list[Capability] = []
         for entry in unit_files:
             capabilities.extend(analyze_entry(entry))
+            unit_nc.extend(config_problems(entry))
+        capabilities = resolve_unprompted(capabilities, {f.rel for f in files if f.kind in ANALYZERS and f.text is not None})
         findings = [f for entry in unit_files for f in legacy.findings(entry)]
         findings += policy.decide(capabilities, unit_nc)
         severities = [f.severity for f in findings] + [n.severity for n in unit_nc]
