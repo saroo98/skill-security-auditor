@@ -34,5 +34,21 @@ def result_to_dict(result: ScanResult) -> dict:
             "errors": [sanitize(e, 400) for e in result.errors]}
 
 
+def result_from_dict(data: dict) -> ScanResult:
+    """Rebuild a ScanResult from result_to_dict output (used by the verdict cache)."""
+    from ..model import Capability, Finding, NotChecked, UnitResult
+
+    units = []
+    for u in data["units"]:
+        units.append(UnitResult(
+            name=u["name"], root_rel=u["root"], files=u["files"], verdict=u["verdict"],
+            capabilities=[Capability(c["kind"], c["file"], c["line"], "", c["confidence"], tuple(sorted(c["detail"].items())))
+                          for c in u["capabilities"]],
+            findings=[Finding(**f) for f in u["findings"]],
+            not_checked=[NotChecked(n["path"], n["reason"], n["severity"]) for n in u["not_checked"]],
+        ))
+    return ScanResult(units=units, elapsed=0.0, tree_hash=data["tree_hash"], errors=list(data.get("errors", [])))
+
+
 def render_json(result: ScanResult) -> str:
     return json.dumps(result_to_dict(result), indent=2, sort_keys=True, ensure_ascii=False)

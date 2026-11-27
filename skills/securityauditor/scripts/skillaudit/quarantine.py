@@ -130,6 +130,19 @@ def extract(archive: Path, dest: Path, *, max_files: int = MAX_FILES, max_total_
     return dest
 
 
+def archive_commit(archive: Path) -> str | None:
+    """GitHub tarballs record the commit in a pax global header comment."""
+    name = Path(archive).name.lower()
+    if not name.endswith((".tar.gz", ".tgz", ".tar")):
+        return None
+    try:
+        with tarfile.open(archive, "r:*") as tf:
+            comment = tf.pax_headers.get("comment", "")
+    except (tarfile.TarError, OSError, EOFError):
+        return None
+    return comment if re.fullmatch(r"[0-9a-f]{40}", comment or "") else None
+
+
 def tree_hash(root: Path) -> str:
     root = Path(root)
     lines: list[str] = []
