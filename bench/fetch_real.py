@@ -11,7 +11,7 @@ from pathlib import Path
 from bench.adapters import self_  # noqa: F401  (puts the skill scripts on sys.path)
 from bench.corpus import BENCH, REPO_ROOT
 from skillaudit.fetch import FetchError, download
-from skillaudit.quarantine import UnsafeArchive, extract
+from skillaudit.quarantine import UnsafeArchive, extract_skipping_links
 
 SOURCES = BENCH / "sources.toml"
 
@@ -38,7 +38,7 @@ def main(argv: list[str] | None = None) -> int:
         archive = out / "_downloads" / f"{owner}__{repo}.tar.gz"
         try:
             download(url, archive, max_bytes=500 * 1024 * 1024, timeout=120)
-            extract(archive, target, max_files=100_000, max_total_bytes=4 * 1024 ** 3)
+            extract_skipping_links(archive, target, max_files=100_000, max_total_bytes=4 * 1024 ** 3)
             print(f"ok   {owner}/{repo}@{entry['commit'][:12]}")
         except (FetchError, UnsafeArchive, OSError) as exc:
             failures += 1

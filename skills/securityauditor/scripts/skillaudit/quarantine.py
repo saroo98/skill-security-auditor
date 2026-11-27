@@ -52,7 +52,8 @@ def _check_name(name: str) -> list[str]:
     return parts
 
 
-def _members(archive: Path, max_files: int, max_total: int) -> list[tuple[list[str], object, str]]:
+def _members(archive: Path, max_files: int, max_total: int,
+             links: list[list[str]] | None = None) -> list[tuple[list[str], object, str]]:
     """Return (parts, handle, kind) for regular files; directories are implied. Raise on anything unsafe."""
     out: list[tuple[list[str], object, str]] = []
     total = 0
@@ -63,7 +64,10 @@ def _members(archive: Path, max_files: int, max_total: int) -> list[tuple[list[s
             parts = _check_name(info.filename)
             mode = (info.external_attr >> 16) & 0o170000
             if mode == 0o120000:
-                raise UnsafeArchive(f"symbolic link in archive: {info.filename!r}")
+                if links is None:
+                    raise UnsafeArchive(f"symbolic link in archive: {info.filename!r}")
+                links.append(parts)
+                continue
             if info.is_dir():
                 continue
             total += info.file_size
@@ -73,7 +77,10 @@ def _members(archive: Path, max_files: int, max_total: int) -> list[tuple[list[s
         for info in tf.getmembers():
             parts = _check_name(info.name)
             if info.issym() or info.islnk():
-                raise UnsafeArchive(f"link in archive: {info.name!r}")
+                if links is None:
+                    raise UnsafeArchive(f"link in archive: {info.name!r}")
+                links.append(parts)
+                continue
             if info.isdir():
                 continue
             if not info.isfile():
@@ -96,13 +103,28 @@ def _members(archive: Path, max_files: int, max_total: int) -> list[tuple[list[s
 
 
 def extract(archive: Path, dest: Path, *, max_files: int = MAX_FILES, max_total_bytes: int = MAX_TOTAL) -> Path:
+    """Extract regular files; any link, device or unsafe name refuses the whole archive."""
+    return _extract(archive, dest, max_files, max_total_bytes, None)
+
+
+def extract_skipping_links(archive: Path, dest: Path, *, max_files: int = MAX_FILES,
+                           max_total_bytes: int = MAX_TOTAL) -> tuple[Path, list[str]]:
+    """Like extract, but links are left out instead of refusing the archive; returns their paths."""
+    links: list[list[str]] = []
+    out = _extract(archive, dest, max_files, max_total_bytes, links)
+    return out, sorted("/".join(p) for p in links)
+
+
+def _extract(archive: Path, dest: Path, max_files: int, max_total_bytes: int, links: list[list[str]] | None) -> Path:
     archive, dest = Path(archive), Path(dest)
     try:
-        members = _members(archive, max_files, max_total_bytes)
+        members = _members(archive, max_files, max_total_bytes, links)
     except (zipfile.BadZipFile, tarfile.TarError, EOFError, OSError) as exc:
         raise UnsafeArchive(f"cannot read archive: {exc}") from None
     tops = {parts[0] for parts, _, _ in members if len(parts) > 1}
     strip = len(tops) == 1 and all(len(parts) > 1 for parts, _, _ in members)
+    if links is not None and strip:
+        links[:] = [p[1:] if len(p) > 1 and p[0] in tops else p for p in links]
     staging = Path(tempfile.mkdtemp(prefix="extract-", dir=dest.parent if dest.parent.exists() else None))
     try:
         written = 0
@@ -179,15 +201,17 @@ def place(source: Source, fetched: Path | None) -> tuple[str, Path]:
     qroot = home() / "quarantine"
     qroot.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix="incoming-", dir=qroot))
+    links: list[str] = []
     try:
         if source.kind == "dir":
             _copy_tree(Path(source.location), staging / "t")
         else:
             archive = Path(fetched) if fetched is not None else Path(source.location)
-            extract(archive, staging / "t")
+            _, links = extract_skipping_links(archive, staging / "t")
         digest = tree_hash(staging / "t")
         check_id = digest[:12]
         final = qroot / check_id
+        (qroot / f"{check_id}.links.json").write_text(json.dumps(links), encoding="utf-8")
         if final.exists():
             shutil.rmtree(staging, ignore_errors=True)
             return check_id, final
@@ -195,6 +219,14 @@ def place(source: Source, fetched: Path | None) -> tuple[str, Path]:
         return check_id, final
     finally:
         shutil.rmtree(staging, ignore_errors=True)
+
+
+def skipped_links(qdir: Path) -> list[str]:
+    """Links that were in the archive but not extracted into this quarantine folder."""
+    try:
+        return list(json.loads((Path(qdir).parent / f"{Path(qdir).name}.links.json").read_text(encoding="utf-8")))
+    except (OSError, ValueError):
+        return []
 
 
 def _cache_file(tree: str, ruleset: str) -> Path:

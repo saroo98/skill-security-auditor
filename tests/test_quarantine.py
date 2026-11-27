@@ -165,3 +165,26 @@ def test_tree_hash_survives_unreadable_file(tmp_path, monkeypatch):
 
     monkeypatch.setattr(quarantine.Path, "read_bytes", fake)
     assert len(tree_hash(d)) == 64
+
+
+def _tar_with_link(path):
+    with tarfile.open(path, "w:gz") as tar:
+        info = tarfile.TarInfo("top/SKILL.md")
+        info.size = 3
+        tar.addfile(info, io.BytesIO(b"# s"))
+        link = tarfile.TarInfo("top/shims/pip3")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "/usr/bin/pip3"
+        tar.addfile(link)
+    return path
+
+
+def test_extract_can_skip_links_and_report_them(tmp_path):
+    out, skipped = quarantine.extract_skipping_links(_tar_with_link(tmp_path / "a.tar.gz"), tmp_path / "out")
+    assert (out / "SKILL.md").exists() and not (out / "shims" / "pip3").exists()
+    assert skipped == ["shims/pip3"]
+
+
+def test_place_records_skipped_links(tmp_path):
+    check_id, qdir = place(Source("url", "u", "", "u", None), _tar_with_link(tmp_path / "a.tar.gz"))
+    assert quarantine.skipped_links(qdir) == ["shims/pip3"]

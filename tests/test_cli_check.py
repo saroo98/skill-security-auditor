@@ -115,3 +115,19 @@ def test_os_error_during_quarantine_is_one_line(tmp_path, capsys, monkeypatch):
     monkeypatch.setattr(cli, "place", boom)
     code, out, err = run(capsys, str(skill))
     assert code == 2 and "Access is denied" in err and len(err.strip().splitlines()) == 1
+
+
+def test_archive_with_link_is_checked_and_link_reported(tmp_path, capsys, monkeypatch):
+    archive = tmp_path / "a.tar.gz"
+    with tarfile.open(archive, "w:gz") as tar:
+        info = tarfile.TarInfo("repo-x/SKILL.md")
+        info.size = len(FM)
+        tar.addfile(info, io.BytesIO(FM.encode()))
+        link = tarfile.TarInfo("repo-x/bin/tool")
+        link.type = tarfile.SYMTYPE
+        link.linkname = "../../etc/passwd"
+        tar.addfile(link)
+    monkeypatch.setattr(cli, "download", lambda url, dest, **kw: archive)
+    code = main(["check", "o/repo", "--static"])
+    out = capsys.readouterr().out
+    assert code == 3 and "bin/tool" in out

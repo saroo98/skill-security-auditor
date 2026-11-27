@@ -35,6 +35,7 @@ _VAR = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)\}?")
 _ASSIGN = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.DOTALL)
 _HOME = re.compile(r"^(\$HOME|\$\{HOME\}|%USERPROFILE%|\$env:USERPROFILE|~)", re.IGNORECASE)
 MAX_DEPTH = 3
+_PURE_EXPANSION = re.compile(r"\$\{?[A-Za-z_][A-Za-z0-9_]*(?::?[-=?+][^}]*)?\}?|\$\([^()]*\)")
 
 
 @dataclass
@@ -93,6 +94,12 @@ def lex(s: str) -> list[Tok]:
             flush()
             toks.append(Tok("op", "\n"))
             i += 1
+        elif not in_word and s.startswith("[[", i) and (i + 2 >= len(s) or s[i + 2] in " \t"):
+            # a [[ ... ]] test is one unit; its && and || do not start commands
+            end = s.find("]]", i + 2)
+            end = len(s) if end == -1 else end + 2
+            toks.append(Tok("word", s[i:end]))
+            i = end
         elif c == "#" and not in_word:
             end = s.find("\n", i)
             i = len(s) if end == -1 else end
@@ -239,6 +246,9 @@ def _stages(toks: list[Tok]) -> list[list[Stage]]:
 
 
 def _unwrap(st: Stage) -> None:
+    # a case pattern such as  *"$x"*)  or  start|stop)  precedes the command on its line
+    if st.words and st.words[0].text.endswith(")") and "(" not in st.words[0].text:
+        st.words = st.words[1:]
     while st.words and st.name in WRAPPERS:
         st.words = st.words[1:]
         while st.words and st.words[0].text.startswith("-"):
@@ -373,8 +383,10 @@ class ShellAnalyzer:
             name = st.name
             sources_here = self._stage_sources(st) | {src for s in st.all_subs() for src in self._sources(s, depth + 1)}
 
-            if st.words and re.search(r"[$`]", st.words[0].text):
-                self.add("obfuscation", line, snippet, why="command name built at run time")
+            # "$PYTHON" or ${BROWSER} as a command is ordinary shell; c${u}rl splices a name together to hide it
+            first_word = st.words[0].text if st.words else ""
+            if re.search(r"[$`]", first_word) and not first_word.startswith("[") and not _PURE_EXPANSION.fullmatch(first_word):
+                self.add("obfuscation", line, snippet, why="command name spliced together at run time")
             if name in FETCHERS or name in NET_TOOLS or name in UPLOADERS:
                 hosts = self._hosts(st)
                 for h in hosts or [None]:

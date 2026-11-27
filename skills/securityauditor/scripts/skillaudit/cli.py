@@ -24,7 +24,7 @@ from .output.text import render_text
 from . import suppress
 import tomllib
 from .packet import LIMIT, build_packet, linked_markdown
-from .quarantine import UnsafeArchive, archive_commit, cache_get, cache_put, home, place, tree_hash
+from .quarantine import UnsafeArchive, archive_commit, cache_get, cache_put, home, place, skipped_links, tree_hash
 
 SUBCOMMANDS = ("scan", "check", "install", "pin", "verify", "diff")
 CHECK_EXIT = {"PASS": 0, "BLOCK": 1, "REVIEW": 3}
@@ -154,6 +154,15 @@ def cmd_check(args: argparse.Namespace) -> int:
             "unit_names": [u.name for u in result.units],
         })
 
+    prefix = source.subpath.rstrip("/") + "/" if source.subpath else ""
+    for link in skipped_links(qdir):
+        if prefix and not link.startswith(prefix):
+            continue
+        rel = link[len(prefix):]
+        owners = [u for u in result.units if u.root_rel and rel.startswith(u.root_rel + "/")] or result.units[:1]
+        for unit in owners:
+            unit.not_checked.append(NotChecked(rel, "link inside the archive; not extracted or installed", "medium"))
+            unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
     imitated = lookalike(source.owner_repo)
     if imitated:
         check = CHECKS["lookalike-source"]

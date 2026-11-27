@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-RULESET_VERSION = "3"  # bump whenever a check's behavior changes; it keys the verdict cache
+RULESET_VERSION = "4"  # bump whenever a check's behavior changes; it keys the verdict cache
 
 
 @dataclass(frozen=True)

