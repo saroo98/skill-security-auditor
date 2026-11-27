@@ -1,0 +1,14 @@
+id = "jb01"
+class = "benign"
+technique = "Node fetches JSON and writes a local file"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "scripts/fetch.mjs"
+content = "import { writeFile } from 'node:fs/promises';\nconst r = await fetch('https://api.example.test/v1/items');\nawait writeFile('items.json', JSON.stringify(await r.json()));\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: jb01\ndescription: Formats local notes.\n---\n\n"

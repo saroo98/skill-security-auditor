@@ -375,7 +375,9 @@ def analyze(entry: FileEntry) -> list[Capability]:
     try:
         tree = ast.parse(text)
     except (SyntaxError, ValueError, RecursionError, MemoryError):
-        return [Capability("obfuscation", entry.rel, None, "file does not parse as Python", "low", (("why", "unparseable"),))]
+        from . import generic
+
+        return [Capability("obfuscation", entry.rel, None, "file does not parse as Python", "low", (("why", "unparseable"),))]             + generic.scan_text(text, entry.rel)
     try:
         return _Analyzer(entry, tree).run()
     except RecursionError:

@@ -1,7 +1,7 @@
 # Limits for this project's own results. Values only ever tighten.
 
 [self]
-min_in_scope_rate = 0.72
+min_in_scope_rate = 0.79
 max_benign_block = 8
 max_pass_chars = 300
 max_block_chars = 1500
