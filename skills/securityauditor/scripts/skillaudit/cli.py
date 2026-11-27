@@ -19,7 +19,7 @@ from .output.text import render_text
 from .packet import LIMIT, build_packet, linked_markdown
 from .quarantine import UnsafeArchive, archive_commit, cache_get, cache_put, home, place, tree_hash
 
-SUBCOMMANDS = ("scan", "check")
+SUBCOMMANDS = ("scan", "check", "pin", "verify", "diff")
 CHECK_EXIT = {"PASS": 0, "BLOCK": 1, "REVIEW": 3}
 
 
@@ -149,6 +149,46 @@ def cmd_check(args: argparse.Namespace) -> int:
     return CHECK_EXIT[verdict]
 
 
+def cmd_pin(args: argparse.Namespace) -> int:
+    from . import lock
+
+    target = Path(args.target)
+    if not target.is_dir():
+        print(f"Invalid input: not a folder: {target}", file=sys.stderr)
+        return 2
+    entry = lock.pin(target, Path(args.lock))
+    print(f"pinned {target} ({entry['static_verdict']}, tree {entry['tree_hash'][:12]}) in {args.lock}")
+    return 0
+
+
+def cmd_verify(args: argparse.Namespace) -> int:
+    from . import lock
+
+    try:
+        drifts = lock.verify(Path(args.lock), quiet=args.quiet)
+    except (OSError, ValueError) as exc:
+        print(f"Cannot read lockfile {args.lock}: {' '.join(str(exc).split())}", file=sys.stderr)
+        return 2
+    for drift in drifts:
+        print("\n".join(lock.describe(drift, quiet=args.quiet)))
+    if not drifts and not args.quiet:
+        print("no changes since approval")
+    return 1 if drifts else 0
+
+
+def cmd_diff(args: argparse.Namespace) -> int:
+    from . import lock
+
+    old, new = Path(args.old), Path(args.new)
+    if not old.is_dir() or not new.is_dir():
+        print("Invalid input: both arguments must be folders", file=sys.stderr)
+        return 2
+    drift = lock.diff_dirs(old, new)
+    print("\n".join(lock.describe(drift)))
+    changed = drift.added_files or drift.removed_files or drift.changed_files
+    return 1 if changed else 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="skillaudit", description="Check agent skills before installing them.")
     parser.add_argument("--version", action="version", version=f"skillaudit {__version__}")
@@ -159,6 +199,21 @@ def build_parser() -> argparse.ArgumentParser:
     check.add_argument("--static", action="store_true", help="static checks only; print no review packet")
     check.add_argument("--no-external", action="store_true", help="do not run other installed scanners")
     check.set_defaults(func=cmd_check)
+
+    pin = sub.add_parser("pin", help="record a skill folder as approved in a lockfile")
+    pin.add_argument("target")
+    pin.add_argument("--lock", default="skill.lock.json")
+    pin.set_defaults(func=cmd_pin)
+
+    verify = sub.add_parser("verify", help="report skills that changed since they were pinned")
+    verify.add_argument("--lock", default="skill.lock.json")
+    verify.add_argument("--quiet", action="store_true", help="hash comparison only; print nothing when clean")
+    verify.set_defaults(func=cmd_verify)
+
+    diff = sub.add_parser("diff", help="compare two versions of a skill")
+    diff.add_argument("old")
+    diff.add_argument("new")
+    diff.set_defaults(func=cmd_diff)
 
     scan = sub.add_parser("scan", help="scan a local directory and report findings")
     scan.add_argument("target")
