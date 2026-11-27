@@ -9,6 +9,7 @@ from pathlib import Path
 from .analyzers import legacy
 from .discovery import discover
 from .model import FileEntry, NotChecked, ScanResult, UnitResult, verdict_for
+from .quarantine import tree_hash
 
 REPOSITORY_UNIT = "(repository)"
 _NAME = re.compile(r"^name:\s*['\"]?([^'\"\n]+?)['\"]?\s*$", re.MULTILINE)
@@ -72,4 +73,5 @@ def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
             not_checked=unit_nc,
             verdict=verdict_for(severities),
         ))
-    return ScanResult(units=units, elapsed=time.perf_counter() - start, tree_hash="")
+    digest = tree_hash(root) if root.is_dir() else ""
+    return ScanResult(units=units, elapsed=time.perf_counter() - start, tree_hash=digest)

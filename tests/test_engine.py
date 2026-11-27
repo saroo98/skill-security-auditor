@@ -62,3 +62,10 @@ def test_empty_or_frontmatterless_skill_md_does_not_crash(tmp_path):
 def test_postinstall_hook_found(tmp_path):
     make(tmp_path, {"SKILL.md": FM, "package.json": '{"scripts": {"postinstall": "node setup.js"}}'})
     assert "npm-postinstall-hook" in {f.check_id for f in scan_path(tmp_path).units[0].findings}
+
+
+def test_scan_fills_tree_hash(tmp_path):
+    from skillaudit.quarantine import tree_hash
+
+    make(tmp_path, {"SKILL.md": FM})
+    assert scan_path(tmp_path).tree_hash == tree_hash(tmp_path)
