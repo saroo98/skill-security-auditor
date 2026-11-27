@@ -1,0 +1,32 @@
+name: Benchmark
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 4 * * 1"
+
+permissions:
+  contents: read
+
+env:
+  SKILLSPECTOR_COMMIT: 02894ec5b8a0a70637df5a6b45763de92940cedd
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install SkillSpector in its own environment
+        run: |
+          python -m venv /tmp/ss
+          /tmp/ss/bin/pip install "git+https://github.com/NVIDIA/skillspector.git@${SKILLSPECTOR_COMMIT}"
+          echo "SKILLSPECTOR_BIN=/tmp/ss/bin/skillspector" >> "$GITHUB_ENV"
+      - name: Run the benchmark
+        run: python -m bench.run --scanner self --scanner skillspector --out bench-out --date "$(date -u +%F)"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-results
+          path: bench-out

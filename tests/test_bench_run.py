@@ -72,3 +72,10 @@ def test_results_json_is_deterministic(tmp_path):
 def test_unavailable_scanner_is_skipped_not_fatal(tmp_path, monkeypatch, capsys):
     assert run.main(["--scanner", "self", "--scanner", "no-such-scanner", "--out", str(tmp_path / "o")]) == 0
     assert "no-such-scanner" in capsys.readouterr().err
+
+
+def test_reproduce_line_has_no_local_paths(tmp_path):
+    out = tmp_path / "private-place"
+    run.main(["--scanner", "self", "--out", str(out), "--date", "2026-01-01"])
+    md = (out / "RESULTS.md").read_text(encoding="utf-8")
+    assert "private-place" not in md and "--scanner self --date 2026-01-01" in md

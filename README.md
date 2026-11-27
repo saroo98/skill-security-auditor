@@ -130,6 +130,12 @@ This tool detects common static patterns. It does not execute code, inspect runt
 
 The scanner reads local text-like files, skips binary files, avoids common dependency and build directories by default, and does not make network requests. It does not modify scanned files and does not provide auto-fix behavior.
 
+## Benchmark
+
+`bench/` holds an inert corpus of skill attacks and harmless look-alikes, stored as data and written out as real skill folders only in a temporary directory. `python -m bench.run` scores any scanner that has an adapter in `bench/adapters/`. Current results are in [bench/results/RESULTS.md](bench/results/RESULTS.md); model stages are off for every scanner in that table.
+
+Rules for the corpus: every case cites a public source for its technique, no case is removed to improve a number (this project's included), and maintainers of a scanner are told about its misses before results that name it are published.
+
 ## Contributing
 
 Contributions are welcome for additional rules, clearer examples, and lower-noise matching. See [CONTRIBUTING.md](CONTRIBUTING.md).

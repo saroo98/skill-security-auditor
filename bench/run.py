@@ -154,7 +154,17 @@ def main(argv: list[str] | None = None) -> int:
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    published_args = [a for a in argv if a != "--check-thresholds"]
+    published_args: list[str] = []
+    skip_next = False
+    for a in argv:
+        if skip_next:
+            skip_next = False
+            continue
+        if a == "--out":
+            skip_next = True
+            continue
+        if a != "--check-thresholds" and not a.startswith("--out="):
+            published_args.append(a)
     (out / "results.json").write_text(json.dumps({"date": args.date, "scanners": scores}, indent=2, sort_keys=True) + "\n",
                                       encoding="utf-8")
     (out / "RESULTS.md").write_text(_markdown(scores, versions, args.date, cases, classes, published_args), encoding="utf-8")

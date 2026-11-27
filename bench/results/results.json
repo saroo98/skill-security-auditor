@@ -1,0 +1,297 @@
+{
+  "date": "2026-11-27",
+  "scanners": {
+    "self": {
+      "benign": {
+        "BLOCK": 5,
+        "PASS": 0,
+        "REVIEW": 1,
+        "total": 6
+      },
+      "errors": 0,
+      "in_scope": {
+        "caught": 2,
+        "rate": 0.1538,
+        "total": 13
+      },
+      "max_block_chars": 404,
+      "max_pass_chars": 51,
+      "out_of_scope": {
+        "non-english-injection": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "paraphrased-injection": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "weak-signal": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        }
+      },
+      "per_class": {
+        "download-run": {
+          "BLOCK": 0,
+          "PASS": 0,
+          "REVIEW": 3,
+          "caught": 0,
+          "total": 3
+        },
+        "dynamic-exec": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "hidden-instruction": {
+          "BLOCK": 0,
+          "PASS": 2,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 2
+        },
+        "instruction-override": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "non-english-injection": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "odd-file": {
+          "BLOCK": 2,
+          "PASS": 0,
+          "REVIEW": 0,
+          "caught": 2,
+          "total": 2
+        },
+        "paraphrased-injection": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "reverse-shell": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "secret-exfil": {
+          "BLOCK": 0,
+          "PASS": 0,
+          "REVIEW": 2,
+          "caught": 0,
+          "total": 2
+        },
+        "unprompted-exec": {
+          "BLOCK": 0,
+          "PASS": 0,
+          "REVIEW": 1,
+          "caught": 0,
+          "total": 1
+        },
+        "weak-signal": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        }
+      },
+      "timing": {
+        "median_seconds": 0.0
+      },
+      "verdicts": {
+        "b01": "BLOCK",
+        "b02": "REVIEW",
+        "b03": "BLOCK",
+        "b04": "BLOCK",
+        "b05": "BLOCK",
+        "b06": "BLOCK",
+        "e01": "REVIEW",
+        "e02": "REVIEW",
+        "e03": "REVIEW",
+        "e04": "PASS",
+        "e05": "PASS",
+        "e06": "BLOCK",
+        "e07": "BLOCK",
+        "e08": "PASS",
+        "e09": "REVIEW",
+        "e10": "REVIEW",
+        "e11": "PASS",
+        "e12": "PASS",
+        "e13": "PASS",
+        "e14": "PASS",
+        "e15": "REVIEW",
+        "e16": "PASS"
+      },
+      "version": "0.2.0.dev0 (ruleset 0)"
+    },
+    "skillspector": {
+      "benign": {
+        "BLOCK": 0,
+        "PASS": 5,
+        "REVIEW": 1,
+        "total": 6
+      },
+      "errors": 0,
+      "in_scope": {
+        "caught": 5,
+        "rate": 0.3846,
+        "total": 13
+      },
+      "max_block_chars": 0,
+      "max_pass_chars": 0,
+      "out_of_scope": {
+        "non-english-injection": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "paraphrased-injection": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "weak-signal": {
+          "BLOCK": 1,
+          "PASS": 0,
+          "REVIEW": 0,
+          "caught": 1,
+          "total": 1
+        }
+      },
+      "per_class": {
+        "download-run": {
+          "BLOCK": 1,
+          "PASS": 1,
+          "REVIEW": 1,
+          "caught": 1,
+          "total": 3
+        },
+        "dynamic-exec": {
+          "BLOCK": 1,
+          "PASS": 0,
+          "REVIEW": 0,
+          "caught": 1,
+          "total": 1
+        },
+        "hidden-instruction": {
+          "BLOCK": 1,
+          "PASS": 0,
+          "REVIEW": 1,
+          "caught": 1,
+          "total": 2
+        },
+        "instruction-override": {
+          "BLOCK": 0,
+          "PASS": 0,
+          "REVIEW": 1,
+          "caught": 0,
+          "total": 1
+        },
+        "non-english-injection": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "odd-file": {
+          "BLOCK": 1,
+          "PASS": 0,
+          "REVIEW": 1,
+          "caught": 1,
+          "total": 2
+        },
+        "paraphrased-injection": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 1
+        },
+        "reverse-shell": {
+          "BLOCK": 1,
+          "PASS": 0,
+          "REVIEW": 0,
+          "caught": 1,
+          "total": 1
+        },
+        "secret-exfil": {
+          "BLOCK": 0,
+          "PASS": 1,
+          "REVIEW": 1,
+          "caught": 0,
+          "total": 2
+        },
+        "unprompted-exec": {
+          "BLOCK": 0,
+          "PASS": 0,
+          "REVIEW": 1,
+          "caught": 0,
+          "total": 1
+        },
+        "weak-signal": {
+          "BLOCK": 1,
+          "PASS": 0,
+          "REVIEW": 0,
+          "caught": 1,
+          "total": 1
+        }
+      },
+      "timing": {
+        "median_seconds": 3.0
+      },
+      "verdicts": {
+        "b01": "PASS",
+        "b02": "PASS",
+        "b03": "PASS",
+        "b04": "REVIEW",
+        "b05": "PASS",
+        "b06": "PASS",
+        "e01": "REVIEW",
+        "e02": "PASS",
+        "e03": "BLOCK",
+        "e04": "PASS",
+        "e05": "BLOCK",
+        "e06": "BLOCK",
+        "e07": "REVIEW",
+        "e08": "BLOCK",
+        "e09": "REVIEW",
+        "e10": "PASS",
+        "e11": "REVIEW",
+        "e12": "BLOCK",
+        "e13": "REVIEW",
+        "e14": "PASS",
+        "e15": "REVIEW",
+        "e16": "BLOCK"
+      },
+      "version": "SkillSpector v2.13.7"
+    }
+  }
+}
