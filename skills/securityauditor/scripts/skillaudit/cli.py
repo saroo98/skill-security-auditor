@@ -12,6 +12,7 @@ from pathlib import Path
 
 from . import __version__
 from .checks import CHECKS, RULESET_VERSION
+from .external import ExternalFailed, run_skillspector
 from .lookalike import lookalike
 from .engine import scan_path
 from .fetch import FetchError, download, resolve
@@ -153,6 +154,24 @@ def cmd_check(args: argparse.Namespace) -> int:
             unit.findings.append(make_finding(check.id, check.severity, "(source)", None,
                                               f"Name matches well-known {imitated} under a different owner", source.display))
             unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
+    used_external = None
+    if not args.no_external:
+        try:
+            ext = run_skillspector(target)
+        except ExternalFailed:
+            ext = None
+            used_external = "skillspector (failed, ignored)"
+        if ext is not None:
+            used_external = f"{ext.version} ({ext.verdict})"
+            ours = _final_verdict(result)
+            if VERDICT_RANK[ext.verdict] > VERDICT_RANK[ours] and result.units:
+                unit = max(result.units, key=lambda u: VERDICT_RANK[u.verdict])
+                floor = "high" if ext.verdict == "BLOCK" else "medium"
+                for issue_id, severity, file, line, pattern in ext.top or [("result", floor, "", None, ext.verdict)]:
+                    sev = severity if SEVERITY_RANK[severity] >= SEVERITY_RANK[floor] else floor
+                    unit.findings.append(make_finding(f"skillspector:{issue_id}", sev, file or "(skill)",
+                                                      line if isinstance(line, int) else None, pattern or "SkillSpector finding", pattern))
+                unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
     packets = [] if args.static else _packets(result, target)
     if source.subpath:
         check_id = hashlib.sha256(f"{full_tree}\0{source.subpath}".encode()).hexdigest()[:12]
@@ -168,7 +187,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     report.write_text(render_text(result), encoding="utf-8")
     verdict = _final_verdict(result)
 
-    print(render_brief(result, report_path=str(report)))
+    print(render_brief(result, report_path=str(report), used_external=used_external))
     if packets and verdict != "BLOCK":
         print()
         print("\n\n".join(packets))
