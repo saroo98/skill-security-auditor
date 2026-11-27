@@ -1,12 +1,11 @@
-# Release Checklist
+# Release checklist
 
-- Run `python -m pytest`.
-- Run the benign example scan.
-- Run the suspicious example scan and confirm it exits `1` at `--fail-on high`.
-- Validate `skills/securityauditor` with `quick_validate.py`.
-- Review README and docs for public-facing language.
-- Confirm examples use only documentation-safe placeholders.
-- Confirm no credentials, local-only context, or non-public notes are present.
-- Confirm repository description and topics match `docs/repository-metadata.md`.
-- Confirm `LICENSE`, `CHANGELOG.md`, `CONTRIBUTING.md`, `SECURITY.md`, and `CODE_OF_CONDUCT.md` are present.
-- Confirm `assets/banner.svg`, `assets/card.svg`, `assets/icon.svg`, and `assets/preview.png` are present.
+- `python -m pytest` passes on Windows, Linux and macOS (CI).
+- `python -m bench.run --scanner self --check-thresholds` exits 0.
+- `python skills/securityauditor/scripts/scan_skill.py scan skills/securityauditor` gives PASS.
+- `check` on one public skill prints a verdict and a check id; `install` then `verify --quiet` prints nothing.
+- Benchmark results in `bench/results/` are regenerated, dated, and match the README table.
+- Scanner maintainers were told about misses before results naming them are published.
+- Examples use only `.test`/`.example` hosts and documentation address ranges.
+- No credentials, local paths or private notes in the repository.
+- `CHANGELOG.md` and the version in `pyproject.toml` and `skillaudit/__init__.py` agree.

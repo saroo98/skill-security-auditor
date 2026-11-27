@@ -217,7 +217,7 @@
         "w03": "BLOCK",
         "wb01": "PASS"
       },
-      "version": "0.2.0.dev0 (ruleset 1)"
+      "version": "0.9.0 (ruleset 2)"
     },
     "skillspector": {
       "benign": {
@@ -358,7 +358,7 @@
         }
       },
       "timing": {
-        "median_seconds": 3.11
+        "median_seconds": 3.21
       },
       "verdicts": {
         "b01": "PASS",

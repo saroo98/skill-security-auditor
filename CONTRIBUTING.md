@@ -2,31 +2,34 @@
 
 Thanks for improving `skill-security-auditor`.
 
-## Development Setup
+## Setup
 
 ```powershell
 python -m pip install -r requirements-dev.txt
 python -m pytest
+python -m bench.run --scanner self --check-thresholds
 ```
 
-The scanner uses the Python standard library at runtime. Keep new runtime dependencies out unless they are necessary and clearly justified.
+The tool uses the Python standard library only at run time. Keep it that way.
 
-## Adding Detection Rules
+## Adding a check
 
-- Add the rule to the relevant script under `skills/securityauditor/scripts`.
-- Give the rule a stable `rule_id`.
-- Use an existing severity and category.
-- Include a concise message and recommendation.
-- Add tests that cover detection and at least one low-noise case when possible.
+1. Add the check to the registry in `skills/securityauditor/scripts/skillaudit/checks.py` with a stable id, severity, title and OWASP Agentic Skills Top 10 mapping.
+2. Teach an analyzer in `skillaudit/analyzers/` to report the capability, and map it in `skillaudit/policy.py`.
+3. Add `docs/checks/<id>.md` with a flagged and a not-flagged example and a public source.
+4. Add a positive and a negative test. The test suite fails if a check has no page or no test.
+5. Add benchmark cases (below) and bump `RULESET_VERSION` when behavior changes.
 
-## Adding Examples
+## Adding a benchmark case
 
-Examples must be inert fixtures. Do not include real credentials, realistic tokens, customer data, production hostnames, or commands that need to be executed.
+Cases live in `bench/corpus/` as ASCII TOML: id, class, technique, a public `source` for the technique, OWASP mapping, the expected verdict, and the files to create. Payloads use only `.test` or `.example` hosts and documentation address ranges, and must do nothing if run. Write invisible characters as `\u` escapes. Mark a case `av_sensitive = true` if antivirus software flags it when written to disk.
 
-## Reporting False Positives
+Never remove or weaken a case to improve a number, this project's included.
 
-Open an issue with the rule ID, a minimal sanitized sample, expected behavior, and actual behavior. Do not include credentials or sensitive repository content.
+## Adding a scanner adapter
 
-## Code Style
+Add a module to `bench/adapters/` exposing `ADAPTER` with `available()`, `version()` and `scan(path)`, register it in `bench/adapters/__init__.py`, document the exact command it runs, and test the mapping with a faked subprocess. Tell the scanner's maintainers about misses before publishing results that name it.
 
-Prefer small functions, typed signatures where useful, deterministic output, and tests for every rule change.
+## Reporting false positives
+
+Open an issue with the check id, a minimal sanitized sample, and what you expected. Do not include credentials or private content.

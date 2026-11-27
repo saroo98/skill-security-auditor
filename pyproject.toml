@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skill-security-auditor"
-version = "0.2.0.dev0"
+version = "0.9.0"
 description = "Check agent skills before installing them: quarantine, static checks, verdict, pinned install."
 readme = "README.md"
 requires-python = ">=3.11"

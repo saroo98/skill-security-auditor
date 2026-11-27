@@ -3,14 +3,14 @@
 Date: 2026-11-27. Corpus: 53 malicious and 20 benign cases.
 Reproduce: `python -m bench.run --scanner self --scanner skillspector --date 2026-11-27`
 
-Scanners: self 0.2.0.dev0 (ruleset 1); skillspector SkillSpector v2.13.7.
+Scanners: self 0.9.0 (ruleset 2); skillspector SkillSpector v2.13.7.
 Model stages are off for every scanner in this table.
 Most cases were written by this project's authors while building its checks, so this project's own numbers on them are optimistic; the real-skill results are the fairer measure of false alarms.
 
 | Scanner | Static-scope cases caught | Benign passed | Benign blocked | Median seconds |
 | --- | --- | --- | --- | --- |
 | self | 50/50 | 18/20 | 0 | 0.0 |
-| skillspector | 11/49 | 15/20 | 1 | 3.11 |
+| skillspector | 11/49 | 15/20 | 1 | 3.21 |
 
 Per class (BLOCK / REVIEW / PASS of total; * = outside static scope):
 
