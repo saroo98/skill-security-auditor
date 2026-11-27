@@ -309,6 +309,12 @@ label = "justified"
 reason = "intentional prompt-injection test fixture telling the agent to hide steps"
 
 [[entry]]
+skill = "NVIDIA__skills/skills/omniverse-cad-to-simready"
+check_id = "env-to-network"
+label = "false-alarm"
+reason = "probes a configured endpoint with a health request or fixed sample render data"
+
+[[entry]]
 skill = "NVIDIA__skills/skills/rag-blueprint"
 check_id = "instruction-external"
 label = "false-alarm"

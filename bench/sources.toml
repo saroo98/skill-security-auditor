@@ -63,3 +63,78 @@ license = "Apache-2.0"
 url = "https://github.com/trailofbits/skills"
 commit = "149d7b21f4067765b82e67029730b42d228ef4b4"
 license = "CC-BY-SA-4.0"
+
+[[repo]]
+url = "https://github.com/cloudflare/skills"
+commit = "ff191de7d903788eceaf516a514ae7d3b56b924a"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/stripe/ai"
+commit = "d4b19a989bf12bdbd4d42de1f9bfd3aec56fd9da"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/supabase/agent-skills"
+commit = "c9be0e931b7930f7d02126d04774d904c381e7d7"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/hashicorp/agent-skills"
+commit = "5e30fa5c867ba6777c37e4206babfd08049c396f"
+license = "MPL-2.0"
+
+[[repo]]
+url = "https://github.com/getsentry/skills"
+commit = "a582c51ee29d0f35e6ac321340796f77d43da733"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/firebase/agent-skills"
+commit = "99954a30898bb5ddc8152ee10e124dc3b4106bf7"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/mongodb/agent-skills"
+commit = "967cbea1a51e6b9387304e1e88ebf57151207c70"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/expo/skills"
+commit = "335359577cbb61cf4097c14ac88ee2609726c85f"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/posthog/skills"
+commit = "724804d15f80474cdbd090aef940da2eb76a83ab"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/neondatabase/agent-skills"
+commit = "d3601d9e1f9398b96a1ee25047bafba5f04199eb"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/awslabs/agent-plugins"
+commit = "75bc18083908882369791b98b2ae9a855cc5e4b0"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/elastic/agent-skills"
+commit = "c0a85e3f7d409db057fece802660627cecf7022c"
+license = "Apache-2.0"
+
+[[repo]]
+url = "https://github.com/redis/agent-skills"
+commit = "74708dab4b3f81a9845803c3f642a4f7d443af69"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/prisma/skills"
+commit = "b4bebffd0d0c3499c3d342f69380886a28e28880"
+license = "MIT"
+
+[[repo]]
+url = "https://github.com/google/skills"
+commit = "6dc0d53303b9f96f166ac72d7f8f1920cb260f24"
+license = "Apache-2.0"

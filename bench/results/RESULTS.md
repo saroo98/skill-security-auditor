@@ -3,15 +3,16 @@
 Date: 2026-11-27. Corpus: 53 malicious and 20 benign cases.
 Reproduce: `python -m bench.run --scanner self --scanner skillspector --scanner cisco-skill-scanner --date 2026-11-27`
 
-Scanners: self 0.9.0 (ruleset 7); skillspector SkillSpector v2.13.7; cisco-skill-scanner skill-scanner 2.3.2.
+Scanners: self 0.9.0 (ruleset 9); skillspector SkillSpector v2.13.7; cisco-skill-scanner skill-scanner 2.3.2.
 Model stages are off for every scanner in this table.
+The Cisco corpus run returned one adapter error. The reported denominator includes that case.
 Most cases were written by this project's authors while building its checks, so this project's own numbers on them are optimistic; the real-skill results are the fairer measure of false alarms.
 
 | Scanner | Static-scope cases caught | Benign passed | Benign blocked | Median seconds |
 | --- | --- | --- | --- | --- |
 | self | 50/50 | 18/20 | 0 | 0.0 |
-| skillspector | 11/49 | 15/20 | 1 | 3.05 |
-| cisco-skill-scanner | 25/49 | 15/20 | 4 | 6.15 |
+| skillspector | 11/49 | 15/20 | 1 | 4.16 |
+| cisco-skill-scanner | 25/49 | 15/20 | 4 | 4.6 |
 
 Per class (BLOCK / REVIEW / PASS of total; * = outside static scope):
 
@@ -34,4 +35,4 @@ Per class (BLOCK / REVIEW / PASS of total; * = outside static scope):
 
 A case counts as caught when the verdict is at least as strict as the case expects.
 
-Real skills (self): 1787 skills; PASS 1307, REVIEW 415, BLOCK 65; unjustified blocks 43 (2.4%); PASS rate 73.1%.
+Real skills (self): 2753 skills; PASS 2088, REVIEW 568, BLOCK 97; unjustified blocks 55 (2.0%); PASS rate 75.8%.
