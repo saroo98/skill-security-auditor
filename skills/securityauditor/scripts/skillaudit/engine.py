@@ -6,12 +6,16 @@ import re
 import time
 from pathlib import Path
 
+from typing import Callable
+
+from . import policy
 from .analyzers import legacy
 from .discovery import discover
-from .model import FileEntry, NotChecked, ScanResult, UnitResult, verdict_for
+from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, verdict_for
 from .quarantine import tree_hash
 
 REPOSITORY_UNIT = "(repository)"
+ANALYZERS: dict[str, Callable[[FileEntry], list[Capability]]] = {}
 _NAME = re.compile(r"^name:\s*['\"]?([^'\"\n]+?)['\"]?\s*$", re.MULTILINE)
 
 
@@ -30,6 +34,13 @@ def _unit_of(rel: str, unit_roots: list[str]) -> str | None:
         if root == "" or rel == root or rel.startswith(root + "/"):
             return root
     return None
+
+
+def analyze_entry(entry: FileEntry) -> list[Capability]:
+    analyzer = ANALYZERS.get(entry.kind)
+    if analyzer is None or entry.text is None:
+        return []
+    return analyzer(entry)
 
 
 def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
@@ -62,13 +73,17 @@ def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
             skill_md = next((f for f in unit_files if f.rel == (f"{key}/SKILL.md" if key else "SKILL.md")), None)
             fallback = key.rsplit("/", 1)[-1] if key else (root.name or "skill")
             name = skill_name(skill_md.text if skill_md else None, fallback)
+        capabilities: list[Capability] = []
+        for entry in unit_files:
+            capabilities.extend(analyze_entry(entry))
         findings = [f for entry in unit_files for f in legacy.findings(entry)]
+        findings += policy.decide(capabilities, unit_nc)
         severities = [f.severity for f in findings] + [n.severity for n in unit_nc]
         units.append(UnitResult(
             name=name,
             root_rel=key if key is not None else "",
             files=len(unit_files) + sum(1 for n in unit_nc if n.severity != "info"),
-            capabilities=[],
+            capabilities=capabilities,
             findings=findings,
             not_checked=unit_nc,
             verdict=verdict_for(severities),

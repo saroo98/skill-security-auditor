@@ -69,3 +69,18 @@ def test_scan_fills_tree_hash(tmp_path):
 
     make(tmp_path, {"SKILL.md": FM})
     assert scan_path(tmp_path).tree_hash == tree_hash(tmp_path)
+
+
+def test_registered_analyzers_feed_policy_and_can_line(tmp_path, monkeypatch):
+    from skillaudit import engine
+    from skillaudit.model import Capability
+    from skillaudit.output.brief import render_brief
+
+    def fake(entry):
+        return [Capability("exec.remote", entry.rel, 1, "curl x | sh"), Capability("net.outbound", entry.rel, 1, "x", detail=(("host", "evil.test"),))]
+
+    monkeypatch.setitem(engine.ANALYZERS, "python", fake)
+    make(tmp_path, {"SKILL.md": FM, "run.py": "x = 1\n"})
+    r = scan_path(tmp_path)
+    assert "remote-exec" in {f.check_id for f in r.units[0].findings}
+    assert "can: download and run code, network (evil.test)" in render_brief(r)
