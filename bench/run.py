@@ -95,6 +95,8 @@ def _markdown(scores: dict, versions: dict, date: str, cases: list[Case], classe
         "",
         "Scanners: " + "; ".join(f"{n} {v}" for n, v in versions.items()) + ".",
         "Model stages are off for every scanner in this table.",
+        "Most cases were written by this project's authors while building its checks, so this project's own numbers on "
+        "them are optimistic; the real-skill results are the fairer measure of false alarms.",
         "",
         "| Scanner | Static-scope cases caught | Benign passed | Benign blocked | Median seconds |",
         "| --- | --- | --- | --- | --- |",

@@ -10,8 +10,8 @@ from typing import Callable
 
 from . import graph, policy
 from .checks import CHECKS
-from .analyzers import configs, generic, hidden, javascript, legacy, markdown, powershell, python_ast, shell
-from .discovery import discover
+from .analyzers import configs, generic, hidden, javascript, markdown, powershell, python_ast, shell
+from .discovery import _role, discover
 from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, make_finding, verdict_for
 from .quarantine import tree_hash
 
@@ -147,12 +147,19 @@ def scan_entries(files: list[FileEntry], not_checked: list[NotChecked], *, root_
         all_rels = {f.rel for f in unit_files} | {n.rel for n in unit_nc}
         refs = graph.references(unit_files, all_rels)
         reach = graph.reachable(unit_files, refs)
-        low_roles = {f.rel for f in unit_files if f.role in ("docs", "test") and f.rel not in reach}
+        # CI workflows never run when a skill is installed, and docs or tests nothing points at are not used
+        # roles are judged relative to the skill's own folder: a whole skill under examples/ is still a skill
+        def unit_role(f: FileEntry) -> str:
+            inner = f.rel[len(key) + 1:] if key else f.rel
+            return _role(inner, f.kind) if key is not None else f.role
+
+        low_roles = {f.rel for f in unit_files if (unit_role(f) in ("docs", "test") and f.rel not in reach)
+                     or f.rel.startswith(".github/workflows/") or "/.github/workflows/" in f.rel}
         declared = None
         if key is not None and skill_md is not None:
             values, _ = configs.parse_frontmatter(skill_md.text or "")
             declared = graph.declared(skill_md.text or "", values)
-        findings = [f for entry in unit_files for f in legacy.findings(entry)]
+        findings = []
         findings += policy.decide(capabilities, unit_nc, declared=declared, unreferenced_low_roles=low_roles)
         pointed_at = graph.referenced_from_instructions(unit_files, refs) | {
             t for f in unit_files if f.role == "executable" for t in refs.get(f.rel, ())}

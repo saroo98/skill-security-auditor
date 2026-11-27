@@ -3,19 +3,19 @@
   "scanners": {
     "self": {
       "benign": {
-        "BLOCK": 5,
-        "PASS": 0,
-        "REVIEW": 1,
-        "total": 6
+        "BLOCK": 0,
+        "PASS": 18,
+        "REVIEW": 2,
+        "total": 20
       },
       "errors": 0,
       "in_scope": {
-        "caught": 2,
-        "rate": 0.1538,
-        "total": 13
+        "caught": 50,
+        "rate": 1.0,
+        "total": 50
       },
-      "max_block_chars": 404,
-      "max_pass_chars": 51,
+      "max_block_chars": 642,
+      "max_pass_chars": 204,
       "out_of_scope": {
         "non-english-injection": {
           "BLOCK": 0,
@@ -25,48 +25,62 @@
           "total": 1
         },
         "paraphrased-injection": {
-          "BLOCK": 0,
-          "PASS": 1,
+          "BLOCK": 1,
+          "PASS": 0,
           "REVIEW": 0,
-          "caught": 0,
+          "caught": 1,
           "total": 1
         },
         "weak-signal": {
           "BLOCK": 0,
-          "PASS": 1,
-          "REVIEW": 0,
-          "caught": 0,
+          "PASS": 0,
+          "REVIEW": 1,
+          "caught": 1,
           "total": 1
         }
       },
       "per_class": {
         "download-run": {
-          "BLOCK": 0,
+          "BLOCK": 10,
           "PASS": 0,
-          "REVIEW": 3,
-          "caught": 0,
-          "total": 3
+          "REVIEW": 0,
+          "caught": 10,
+          "total": 10
         },
         "dynamic-exec": {
-          "BLOCK": 0,
-          "PASS": 1,
+          "BLOCK": 4,
+          "PASS": 0,
           "REVIEW": 0,
-          "caught": 0,
-          "total": 1
+          "caught": 4,
+          "total": 4
         },
         "hidden-instruction": {
-          "BLOCK": 0,
-          "PASS": 2,
+          "BLOCK": 3,
+          "PASS": 0,
           "REVIEW": 0,
-          "caught": 0,
+          "caught": 3,
+          "total": 3
+        },
+        "install-extra": {
+          "BLOCK": 2,
+          "PASS": 0,
+          "REVIEW": 0,
+          "caught": 2,
           "total": 2
         },
         "instruction-override": {
-          "BLOCK": 0,
-          "PASS": 1,
+          "BLOCK": 4,
+          "PASS": 0,
           "REVIEW": 0,
-          "caught": 0,
-          "total": 1
+          "caught": 4,
+          "total": 4
+        },
+        "mismatch": {
+          "BLOCK": 3,
+          "PASS": 0,
+          "REVIEW": 0,
+          "caught": 3,
+          "total": 3
         },
         "non-english-injection": {
           "BLOCK": 0,
@@ -76,45 +90,52 @@
           "total": 1
         },
         "odd-file": {
-          "BLOCK": 2,
+          "BLOCK": 3,
           "PASS": 0,
           "REVIEW": 0,
-          "caught": 2,
-          "total": 2
+          "caught": 3,
+          "total": 3
         },
         "paraphrased-injection": {
-          "BLOCK": 0,
-          "PASS": 1,
+          "BLOCK": 1,
+          "PASS": 0,
           "REVIEW": 0,
-          "caught": 0,
+          "caught": 1,
           "total": 1
         },
         "reverse-shell": {
-          "BLOCK": 0,
-          "PASS": 1,
+          "BLOCK": 3,
+          "PASS": 0,
           "REVIEW": 0,
-          "caught": 0,
-          "total": 1
+          "caught": 3,
+          "total": 3
+        },
+        "reviewer-directed": {
+          "BLOCK": 4,
+          "PASS": 0,
+          "REVIEW": 0,
+          "caught": 4,
+          "total": 4
         },
         "secret-exfil": {
-          "BLOCK": 0,
+          "BLOCK": 9,
           "PASS": 0,
-          "REVIEW": 2,
-          "caught": 0,
-          "total": 2
+          "REVIEW": 0,
+          "caught": 9,
+          "total": 9
         },
         "unprompted-exec": {
-          "BLOCK": 0,
+          "BLOCK": 5,
           "PASS": 0,
-          "REVIEW": 1,
-          "caught": 0,
-          "total": 1
+          "REVIEW": 0,
+          "caught": 5,
+          "total": 5
         },
         "weak-signal": {
           "BLOCK": 0,
-          "PASS": 1,
-          "REVIEW": 0,
-          "caught": 0,
+          "PASS": 0,
+          "REVIEW": 1,
+          "caught": 1,
           "total": 1
         }
       },
@@ -122,43 +143,94 @@
         "median_seconds": 0.0
       },
       "verdicts": {
-        "b01": "BLOCK",
-        "b02": "REVIEW",
-        "b03": "BLOCK",
-        "b04": "BLOCK",
-        "b05": "BLOCK",
-        "b06": "BLOCK",
-        "e01": "REVIEW",
-        "e02": "REVIEW",
-        "e03": "REVIEW",
-        "e04": "PASS",
-        "e05": "PASS",
+        "b01": "PASS",
+        "b02": "PASS",
+        "b03": "PASS",
+        "b04": "PASS",
+        "b05": "PASS",
+        "b06": "PASS",
+        "c01": "BLOCK",
+        "c02": "BLOCK",
+        "c03": "BLOCK",
+        "c04": "BLOCK",
+        "c05": "BLOCK",
+        "cb01": "PASS",
+        "cb02": "PASS",
+        "e01": "BLOCK",
+        "e02": "BLOCK",
+        "e03": "BLOCK",
+        "e04": "BLOCK",
+        "e05": "BLOCK",
         "e06": "BLOCK",
         "e07": "BLOCK",
-        "e08": "PASS",
-        "e09": "REVIEW",
-        "e10": "REVIEW",
-        "e11": "PASS",
-        "e12": "PASS",
-        "e13": "PASS",
+        "e08": "REVIEW",
+        "e09": "BLOCK",
+        "e10": "BLOCK",
+        "e11": "BLOCK",
+        "e12": "BLOCK",
+        "e13": "BLOCK",
         "e14": "PASS",
-        "e15": "REVIEW",
-        "e16": "PASS"
+        "e15": "BLOCK",
+        "e16": "BLOCK",
+        "j01": "BLOCK",
+        "j02": "BLOCK",
+        "j03": "BLOCK",
+        "jb01": "REVIEW",
+        "m01": "BLOCK",
+        "m02": "BLOCK",
+        "m03": "BLOCK",
+        "m04": "BLOCK",
+        "m05": "BLOCK",
+        "m06": "BLOCK",
+        "mb01": "PASS",
+        "mb02": "PASS",
+        "mb03": "PASS",
+        "mb04": "PASS",
+        "p01": "BLOCK",
+        "p02": "BLOCK",
+        "p03": "BLOCK",
+        "p04": "BLOCK",
+        "p05": "BLOCK",
+        "p06": "BLOCK",
+        "pb01": "PASS",
+        "pb02": "REVIEW",
+        "pb03": "PASS",
+        "r01": "BLOCK",
+        "r02": "BLOCK",
+        "r03": "BLOCK",
+        "r04": "BLOCK",
+        "s01": "BLOCK",
+        "s02": "BLOCK",
+        "s03": "BLOCK",
+        "s04": "BLOCK",
+        "s05": "BLOCK",
+        "s06": "BLOCK",
+        "s07": "BLOCK",
+        "s08": "BLOCK",
+        "s09": "BLOCK",
+        "s10": "BLOCK",
+        "sb01": "PASS",
+        "sb02": "PASS",
+        "sb03": "PASS",
+        "w01": "BLOCK",
+        "w02": "BLOCK",
+        "w03": "BLOCK",
+        "wb01": "PASS"
       },
-      "version": "0.2.0.dev0 (ruleset 0)"
+      "version": "0.2.0.dev0 (ruleset 1)"
     },
     "skillspector": {
       "benign": {
-        "BLOCK": 0,
-        "PASS": 5,
-        "REVIEW": 1,
-        "total": 6
+        "BLOCK": 1,
+        "PASS": 15,
+        "REVIEW": 4,
+        "total": 20
       },
       "errors": 0,
       "in_scope": {
-        "caught": 5,
-        "rate": 0.3846,
-        "total": 13
+        "caught": 11,
+        "rate": 0.2245,
+        "total": 49
       },
       "max_block_chars": 0,
       "max_pass_chars": 0,
@@ -187,32 +259,46 @@
       },
       "per_class": {
         "download-run": {
-          "BLOCK": 1,
-          "PASS": 1,
-          "REVIEW": 1,
-          "caught": 1,
-          "total": 3
+          "BLOCK": 3,
+          "PASS": 4,
+          "REVIEW": 3,
+          "caught": 3,
+          "total": 10
         },
         "dynamic-exec": {
           "BLOCK": 1,
-          "PASS": 0,
-          "REVIEW": 0,
+          "PASS": 2,
+          "REVIEW": 1,
           "caught": 1,
-          "total": 1
+          "total": 4
         },
         "hidden-instruction": {
           "BLOCK": 1,
           "PASS": 0,
-          "REVIEW": 1,
+          "REVIEW": 2,
           "caught": 1,
+          "total": 3
+        },
+        "install-extra": {
+          "BLOCK": 0,
+          "PASS": 2,
+          "REVIEW": 0,
+          "caught": 0,
           "total": 2
         },
         "instruction-override": {
           "BLOCK": 0,
-          "PASS": 0,
+          "PASS": 3,
           "REVIEW": 1,
           "caught": 0,
-          "total": 1
+          "total": 4
+        },
+        "mismatch": {
+          "BLOCK": 2,
+          "PASS": 1,
+          "REVIEW": 0,
+          "caught": 2,
+          "total": 3
         },
         "non-english-injection": {
           "BLOCK": 0,
@@ -224,9 +310,9 @@
         "odd-file": {
           "BLOCK": 1,
           "PASS": 0,
-          "REVIEW": 1,
+          "REVIEW": 2,
           "caught": 1,
-          "total": 2
+          "total": 3
         },
         "paraphrased-injection": {
           "BLOCK": 0,
@@ -236,25 +322,32 @@
           "total": 1
         },
         "reverse-shell": {
-          "BLOCK": 1,
-          "PASS": 0,
+          "BLOCK": 2,
+          "PASS": 1,
           "REVIEW": 0,
-          "caught": 1,
-          "total": 1
+          "caught": 2,
+          "total": 3
+        },
+        "reviewer-directed": {
+          "BLOCK": 0,
+          "PASS": 4,
+          "REVIEW": 0,
+          "caught": 0,
+          "total": 4
         },
         "secret-exfil": {
-          "BLOCK": 0,
-          "PASS": 1,
-          "REVIEW": 1,
-          "caught": 0,
-          "total": 2
+          "BLOCK": 1,
+          "PASS": 2,
+          "REVIEW": 6,
+          "caught": 1,
+          "total": 9
         },
         "unprompted-exec": {
           "BLOCK": 0,
-          "PASS": 0,
-          "REVIEW": 1,
+          "PASS": 1,
+          "REVIEW": 3,
           "caught": 0,
-          "total": 1
+          "total": 4
         },
         "weak-signal": {
           "BLOCK": 1,
@@ -265,7 +358,7 @@
         }
       },
       "timing": {
-        "median_seconds": 3.0
+        "median_seconds": 3.11
       },
       "verdicts": {
         "b01": "PASS",
@@ -274,6 +367,12 @@
         "b04": "REVIEW",
         "b05": "PASS",
         "b06": "PASS",
+        "c01": "REVIEW",
+        "c02": "REVIEW",
+        "c04": "PASS",
+        "c05": "BLOCK",
+        "cb01": "REVIEW",
+        "cb02": "PASS",
         "e01": "REVIEW",
         "e02": "PASS",
         "e03": "BLOCK",
@@ -289,7 +388,51 @@
         "e13": "REVIEW",
         "e14": "PASS",
         "e15": "REVIEW",
-        "e16": "BLOCK"
+        "e16": "BLOCK",
+        "j01": "REVIEW",
+        "j02": "REVIEW",
+        "j03": "PASS",
+        "jb01": "PASS",
+        "m01": "PASS",
+        "m02": "PASS",
+        "m03": "PASS",
+        "m04": "PASS",
+        "m05": "REVIEW",
+        "m06": "PASS",
+        "mb01": "PASS",
+        "mb02": "PASS",
+        "mb03": "REVIEW",
+        "mb04": "PASS",
+        "p01": "REVIEW",
+        "p02": "BLOCK",
+        "p03": "REVIEW",
+        "p04": "BLOCK",
+        "p05": "REVIEW",
+        "p06": "BLOCK",
+        "pb01": "BLOCK",
+        "pb02": "PASS",
+        "pb03": "PASS",
+        "r01": "PASS",
+        "r02": "PASS",
+        "r03": "PASS",
+        "r04": "PASS",
+        "s01": "PASS",
+        "s02": "REVIEW",
+        "s03": "PASS",
+        "s04": "BLOCK",
+        "s05": "PASS",
+        "s06": "PASS",
+        "s07": "REVIEW",
+        "s08": "REVIEW",
+        "s09": "BLOCK",
+        "s10": "REVIEW",
+        "sb01": "PASS",
+        "sb02": "REVIEW",
+        "sb03": "PASS",
+        "w01": "PASS",
+        "w02": "PASS",
+        "w03": "PASS",
+        "wb01": "PASS"
       },
       "version": "SkillSpector v2.13.7"
     }

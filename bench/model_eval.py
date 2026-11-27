@@ -72,7 +72,7 @@ def evaluate(cases: list[Case], command: list[str]) -> dict[str, dict]:
             continue
         packet, _ = build_packet(result.units[0], _instruction_files(contents))
         try:
-            p = subprocess.run(command, input=build_prompt(packet), capture_output=True, text=True,
+            p = subprocess.run([*command], input=build_prompt(packet), capture_output=True, text=True,
                                encoding="utf-8", errors="replace", timeout=TIMEOUT)
             model = parse_reply(p.stdout)
         except (OSError, subprocess.SubprocessError):

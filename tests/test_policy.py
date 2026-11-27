@@ -108,3 +108,12 @@ def test_unprompted_summary():
 
 def test_not_checked_items_do_not_become_findings():
     assert decide([], [NotChecked("a.pdf", "doc", "medium")]) == []
+
+
+def test_workflow_findings_are_capped_low(tmp_path):
+    from helpers import FM, make
+    from skillaudit.engine import scan_path
+
+    make(tmp_path, {"SKILL.md": FM, ".github/workflows/ci.yml": "jobs:\n  t:\n    steps:\n      - run: python -m pip install -r requirements.txt\n"})
+    found = {(f.check_id, f.severity) for f in scan_path(tmp_path).units[0].findings}
+    assert ("runtime-pkg-install", "low") in found

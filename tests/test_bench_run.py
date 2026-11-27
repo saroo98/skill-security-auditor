@@ -94,3 +94,8 @@ def test_runner_skips_av_sensitive_cases_unless_asked(tmp_path, monkeypatch):
     run.main(["--scanner", "self", "--out", str(tmp_path / "a")])
     run.main(["--scanner", "self", "--out", str(tmp_path / "b"), "--include-av-sensitive"])
     assert seen == [True, False]
+
+
+def test_results_page_states_authorship_bias(tmp_path):
+    run.main(["--scanner", "self", "--out", str(tmp_path / "o")])
+    assert "written by this project's authors" in (tmp_path / "o" / "RESULTS.md").read_text(encoding="utf-8")

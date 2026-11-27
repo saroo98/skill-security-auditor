@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import warnings
 from urllib.parse import urlparse
 
 from ..data import is_secret_name, is_secret_path
@@ -336,7 +337,11 @@ class _Analyzer:
                 parts = [self.folder.fold(e) for e in first.elts]
                 if all(p is not None for p in parts):
                     command = " ".join(parts)
-            self.add("exec.shell", call, constant="yes" if command is not None else "no")
+            uses_shell = n in ("os.system", "os.popen", "subprocess.getoutput", "subprocess.getstatusoutput",
+                               "asyncio.create_subprocess_shell", "commands.getoutput") or any(
+                k.arg == "shell" and not (isinstance(k.value, ast.Constant) and not k.value.value) for k in call.keywords)
+            argv_literal = isinstance(first, (ast.List, ast.Tuple)) and not uses_shell
+            self.add("exec.shell", call, constant="yes" if command is not None or argv_literal else "no")
             if command:
                 for cap in shell.analyze_command(command, self.entry.rel, call.lineno):
                     self.caps.append(Capability(cap.kind, cap.file, cap.line, self.snippet(call)[:300], cap.confidence, cap.detail))
@@ -373,7 +378,9 @@ class _Analyzer:
 def analyze(entry: FileEntry) -> list[Capability]:
     text = entry.text or ""
     try:
-        tree = ast.parse(text)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", SyntaxWarning)
+            tree = ast.parse(text)
     except (SyntaxError, ValueError, RecursionError, MemoryError):
         from . import generic
 

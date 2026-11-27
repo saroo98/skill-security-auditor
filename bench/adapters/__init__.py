@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import importlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
@@ -26,11 +25,16 @@ class Adapter(Protocol):
     def scan(self, path: Path) -> AdapterResult: ...
 
 
-MODULES = {"self": "self_", "skillspector": "skillspector", "cisco-skill-scanner": "cisco"}
+NAMES = ("self", "skillspector", "cisco-skill-scanner")
 
 
 def get(name: str) -> Adapter:
-    if name not in MODULES:
-        raise KeyError(f"unknown scanner: {name}; known: {', '.join(sorted(MODULES))}")
-    module = importlib.import_module(f"bench.adapters.{MODULES[name]}")
+    if name == "self":
+        from bench.adapters import self_ as module
+    elif name == "skillspector":
+        from bench.adapters import skillspector as module
+    elif name == "cisco-skill-scanner":
+        from bench.adapters import cisco as module
+    else:
+        raise KeyError(f"unknown scanner: {name}; known: {', '.join(NAMES)}")
     return module.ADAPTER

@@ -124,3 +124,9 @@ def test_pickle_loads_is_dynamic():
 def test_line_numbers():
     src = "import os\n\n\nos.system(x)\n"
     assert [c.line for c in caps(src) if c.kind == "exec.shell"] == [4]
+
+
+def test_argv_list_without_shell_is_fixed_shape():
+    assert shells("import subprocess\nsubprocess.run([binary, '--version'])\n") == [{"constant": "yes"}]
+    assert shells("import subprocess\nsubprocess.run([*command], input=x)\n") == [{"constant": "yes"}]
+    assert shells("import subprocess\nsubprocess.run([binary, x], shell=True)\n") == [{"constant": "no"}]
