@@ -8,10 +8,11 @@ import sys
 from pathlib import Path
 
 from . import __version__
-from .checks import RULESET_VERSION
+from .checks import CHECKS, RULESET_VERSION
+from .lookalike import lookalike
 from .engine import scan_path
 from .fetch import FetchError, download, resolve
-from .model import SEVERITIES, SEVERITY_RANK, VERDICT_RANK, NotChecked, ScanResult, verdict_for
+from .model import SEVERITIES, SEVERITY_RANK, VERDICT_RANK, NotChecked, ScanResult, make_finding, verdict_for
 from .output.brief import render_brief
 from .output.json_out import render_json, result_from_dict, result_to_dict
 from .output.text import render_text
@@ -127,6 +128,13 @@ def cmd_check(args: argparse.Namespace) -> int:
             "unit_names": [u.name for u in result.units],
         })
 
+    imitated = lookalike(source.owner_repo)
+    if imitated:
+        check = CHECKS["lookalike-source"]
+        for unit in result.units:
+            unit.findings.append(make_finding(check.id, check.severity, "(source)", None,
+                                              f"Name matches well-known {imitated} under a different owner", source.display))
+            unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
     packets = [] if args.static else _packets(result, target)
     report = home() / "reports" / f"{check_id}.txt"
     report.parent.mkdir(parents=True, exist_ok=True)

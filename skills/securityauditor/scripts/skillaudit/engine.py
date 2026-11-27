@@ -8,10 +8,11 @@ from pathlib import Path
 
 from typing import Callable
 
-from . import policy
+from . import graph, policy
+from .checks import CHECKS
 from .analyzers import configs, generic, hidden, javascript, legacy, markdown, powershell, python_ast, shell
 from .discovery import discover
-from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, verdict_for
+from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, make_finding, verdict_for
 from .quarantine import tree_hash
 
 REPOSITORY_UNIT = "(repository)"
@@ -131,6 +132,7 @@ def scan_entries(files: list[FileEntry], not_checked: list[NotChecked], *, root_
     for key in keys:
         unit_files = grouped_files.get(key, [])
         unit_nc = grouped_nc.get(key, [])
+        skill_md = None
         if key is None:
             name = REPOSITORY_UNIT
         else:
@@ -142,8 +144,25 @@ def scan_entries(files: list[FileEntry], not_checked: list[NotChecked], *, root_
             capabilities.extend(analyze_entry(entry))
             unit_nc.extend(config_problems(entry))
         capabilities = resolve_unprompted(capabilities, {f.rel for f in files if f.kind in ANALYZERS and f.text is not None})
+        all_rels = {f.rel for f in unit_files} | {n.rel for n in unit_nc}
+        refs = graph.references(unit_files, all_rels)
+        reach = graph.reachable(unit_files, refs)
+        low_roles = {f.rel for f in unit_files if f.role in ("docs", "test") and f.rel not in reach}
+        declared = None
+        if key is not None and skill_md is not None:
+            values, _ = configs.parse_frontmatter(skill_md.text or "")
+            declared = graph.declared(skill_md.text or "", values)
         findings = [f for entry in unit_files for f in legacy.findings(entry)]
-        findings += policy.decide(capabilities, unit_nc)
+        findings += policy.decide(capabilities, unit_nc, declared=declared, unreferenced_low_roles=low_roles)
+        pointed_at = graph.referenced_from_instructions(unit_files, refs) | {
+            t for f in unit_files if f.role == "executable" for t in refs.get(f.rel, ())}
+        for item in unit_nc:
+            if item.reason.startswith("binary") and item.rel in pointed_at:
+                check = CHECKS["binary-referenced"]
+                findings.append(make_finding(check.id, check.severity, item.rel, None, check.title, item.rel))
+        for source, target in graph.missing_references(unit_files, refs, all_rels):
+            check = CHECKS["missing-reference"]
+            findings.append(make_finding(check.id, check.severity, source, None, check.title, target))
         severities = [f.severity for f in findings] + [n.severity for n in unit_nc]
         units.append(UnitResult(
             name=name,

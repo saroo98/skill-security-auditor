@@ -1,0 +1,11 @@
+# Well-known agent skill repositories. A source with the same or a nearly identical repository name
+# under a different owner is reported as a lookalike. Add entries; one owner/repo per line.
+anthropics/skills
+anthropics/claude-code
+anthropics/claude-plugins-official
+openai/codex
+openai/skills
+ComposioHQ/awesome-claude-skills
+hesreallyhim/awesome-claude-code
+obra/superpowers
+NVIDIA/skillspector

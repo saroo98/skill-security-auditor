@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-RULESET_VERSION = "0"  # bump whenever a check's behavior changes; it keys the verdict cache
+RULESET_VERSION = "1"  # bump whenever a check's behavior changes; it keys the verdict cache
 
 
 @dataclass(frozen=True)
@@ -48,6 +48,7 @@ _TABLE: tuple[tuple[str, str, str, tuple[str, ...]], ...] = (
     ("unprompted-clean", "low", "Runs without asking; the command was checked", ("AST06",)),
     ("declared-network", "low", "Uses the network, as the skill says", ()),
     ("shell-constant", "low", "Runs a fixed shell command", ()),
+    ("missing-reference", "low", "Instructions point at a file that is not in the skill", ("AST04",)),
     ("secret-to-vendor", "info", "A secret is sent to its own vendor", ()),
     ("env-read", "info", "Reads a named environment variable", ()),
     ("project-delete", "info", "Deletes files inside the project", ()),
