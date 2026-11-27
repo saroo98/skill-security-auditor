@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import shlex
 import warnings
 from urllib.parse import urlparse
 
@@ -137,10 +138,15 @@ class _Analyzer:
         self.aliases: dict[str, str] = {}
         self.consts: dict[str, str] = {}
         self.parents: dict[ast.AST, ast.AST] = {}
+        self.preceding_assignments: dict[ast.stmt, ast.Assign] = {}
         self.tree = tree
         for node in ast.walk(tree):
             for child in ast.iter_child_nodes(node):
                 self.parents[child] = node
+            if isinstance(node, (ast.Module, ast.FunctionDef, ast.AsyncFunctionDef)):
+                for previous, current in zip(node.body, node.body[1:]):
+                    if isinstance(previous, ast.Assign):
+                        self.preceding_assignments[current] = previous
         self._imports()
         self._env_aliases()
         self.folder = _Folder(self.aliases, self.consts)
@@ -302,6 +308,26 @@ class _Analyzer:
                 return True
         return False
 
+    def _bound_argv(self, first: ast.AST | None, call: ast.Call) -> ast.List | ast.Tuple | None:
+        if not isinstance(first, ast.Name):
+            return None
+        statement = self.parents.get(call)
+        if not isinstance(statement, (ast.Assign, ast.AnnAssign, ast.Expr, ast.Return)) or statement.value is not call:
+            return None
+        assignment = self.preceding_assignments.get(statement)
+        if not assignment or len(assignment.targets) != 1:
+            return None
+        target, argv = assignment.targets[0], assignment.value
+        if not isinstance(target, ast.Name) or target.id != first.id or not isinstance(argv, (ast.List, ast.Tuple)) or not argv.elts:
+            return None
+        head = argv.elts[0]
+        if not isinstance(head, ast.Constant) or not isinstance(head.value, str) or not head.value:
+            return None
+        program = head.value.replace("\\", "/").rsplit("/", 1)[-1].lower().removesuffix(".exe")
+        if program in shell.INTERPRETERS | shell.WRAPPERS | {"cmd", "env", "ssh"} or program.endswith((".bat", ".cmd")):
+            return None
+        return argv
+
     def run(self) -> list[Capability]:
         for body in self._scopes():
             nodes = self._scope_nodes(body)
@@ -356,6 +382,15 @@ class _Analyzer:
                                "asyncio.create_subprocess_shell", "commands.getoutput") or any(
                 k.arg == "shell" and not (isinstance(k.value, ast.Constant) and not k.value.value) for k in call.keywords)
             argv_literal = isinstance(first, (ast.List, ast.Tuple)) and not uses_shell
+            if not uses_shell and n.startswith("subprocess.") and len(call.args) <= 1 and all(
+                k.arg not in (None, "executable") for k in call.keywords
+            ):
+                bound_argv = self._bound_argv(first, call)
+                if bound_argv is not None:
+                    argv_literal = True
+                    parts = [self.folder.fold(e) for e in bound_argv.elts]
+                    if all(p is not None for p in parts):
+                        command = shlex.join(parts)
             self.add("exec.shell", call, constant="yes" if command is not None or argv_literal else "no")
             if command:
                 for cap in shell.analyze_command(command, self.entry.rel, call.lineno):

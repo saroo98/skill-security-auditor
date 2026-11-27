@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import bisect
 import re
+from textwrap import dedent
 
 from ..model import CapList, Capability, FileEntry
 from . import shell
@@ -226,11 +227,11 @@ def _frontmatter(text: str) -> tuple[list[tuple[int, str]], int]:
         m = re.match(r"^description:\s*(.*)$", raw)
         if m:
             value = m.group(1).strip()
-            capturing = value in ("", "|", ">", "|-", ">-")
-            if not capturing:
+            capturing = True
+            if value not in ("", "|", ">", "|-", ">-", "|+", ">+"):
                 desc.append((i + 1, value.strip("'\"")))
             continue
-        if capturing:
+        if capturing and raw.strip():
             if raw.startswith((" ", "\t")):
                 desc.append((i + 1, raw.strip()))
             else:
@@ -294,8 +295,8 @@ def analyze(entry: FileEntry) -> list[Capability]:
     text = entry.text or ""
     prose = _Prose(entry)
     desc, body_start = _frontmatter(text)
-    for number, value in desc:
-        prose.sentence(value, number)
+    if desc:
+        _blocks(prose, desc)
     all_lines = text.split("\n")
     visible: list[tuple[int, str]] = []
     in_fence: str | None = None
@@ -365,6 +366,8 @@ def _fenced(prose: _Prose, lang: str, lines: list[str], start: int) -> None:
     if kind == "shell":
         lines = [re.sub(r"^\s*[$>]\s+", "", ln) for ln in lines]
     text = "\n".join(lines)
+    if kind == "python":
+        text = dedent(text)
     entry = prose.entry
     sub = FileEntry(entry.path, entry.rel, kind, entry.role, text, entry.encoding, len(text))
     analyzer = {"shell": shell.analyze, "python": python_ast.analyze, "powershell": powershell.analyze,
