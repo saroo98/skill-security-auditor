@@ -1,0 +1,14 @@
+id = "sb01"
+class = "benign"
+technique = "Downloads JSON data and filters it"
+source = "https://owasp.org/www-project-agentic-skills-top-10/"
+ast10 = ["AST01"]
+expect = "PASS"
+
+[[files]]
+path = "scripts/fetch.sh"
+content = "curl -s https://api.weather.example/v1/today -o today.json\njq .summary today.json\n"
+
+[[files]]
+path = "SKILL.md"
+content = "---\nname: sb01\ndescription: Fetches public weather data from an HTTP API and summarizes it.\n---\n\n"
