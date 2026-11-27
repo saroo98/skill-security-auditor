@@ -6,3 +6,5 @@ max_benign_block = 0
 max_pass_chars = 300
 max_block_chars = 1500
 max_median_seconds = 2.0
+max_unjustified_block_rate = 0.02
+min_real_pass_rate = 0.80

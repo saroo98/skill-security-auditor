@@ -1,0 +1,8 @@
+# Hand triage of real skills that get BLOCK. A block with no entry, or labeled false-alarm, counts as
+# unjustified. Justified means a careful reviewer would want to stop and look before installing.
+#
+# [[entry]]
+# skill = "<owner>__<repo>/<path to the skill folder>"
+# check_id = "<check that blocked it>"
+# label = "justified"   # or "false-alarm"
+# reason = "<the concrete risk, or why it is a false alarm>"

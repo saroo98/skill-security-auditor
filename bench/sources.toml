@@ -1,0 +1,9 @@
+# Public skill repositories used to measure false alarms on real skills.
+# Inclusion: published by an agent vendor's own organization or listed in an official marketplace,
+# with a license that permits download. Every entry is pinned to a full commit hash.
+#
+# [[repo]]
+# url = "https://github.com/<owner>/<repo>"
+# commit = "<40 hex characters>"
+# license = "<SPDX identifier>"
+# paths = ["skills"]

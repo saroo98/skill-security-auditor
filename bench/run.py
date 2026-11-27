@@ -15,6 +15,7 @@ from bench.adapters import AdapterResult, get
 from bench.corpus import BENCH, Case, load_cases, load_classes, materialize, scan_in_memory
 
 THRESHOLDS = BENCH / "thresholds.toml"
+TRIAGE = BENCH / "triage.toml"
 RANK = {"PASS": 0, "REVIEW": 1, "BLOCK": 2}
 COMMAND = "python -m bench.run"
 
@@ -60,6 +61,44 @@ def score(cases: list[Case], results: dict[str, AdapterResult], classes: dict) -
     }
 
 
+def load_triage(path: Path = None) -> dict[str, dict]:
+    path = path or TRIAGE
+    with open(path, "rb") as fh:
+        entries = tomllib.load(fh).get("entry", [])
+    out: dict[str, dict] = {}
+    for e in entries:
+        if e.get("label") not in ("justified", "false-alarm"):
+            raise ValueError(f"triage entry for {e.get('skill')}: label must be justified or false-alarm")
+        if not str(e.get("reason", "")).strip():
+            raise ValueError(f"triage entry for {e.get('skill')}: a reason is required")
+        out[e["skill"]] = e
+    return out
+
+
+def score_real(root: Path, triage: dict[str, dict]) -> dict:
+    """Scan every skill folder under root with this project's checks; count verdicts and unjustified blocks."""
+    from bench.adapters.self_ import ADAPTER
+
+    root = Path(root)
+    units = sorted({p.parent for p in root.rglob("SKILL.md") if p.is_file()})
+    counts = {"PASS": 0, "REVIEW": 0, "BLOCK": 0}
+    unjustified: list[str] = []
+    for unit in units:
+        rel = unit.relative_to(root).as_posix()
+        verdict = ADAPTER.scan(unit).verdict
+        counts[verdict] += 1
+        if verdict == "BLOCK" and triage.get(rel, {}).get("label") != "justified":
+            unjustified.append(rel)
+    total = len(units)
+    return {
+        "units": total, **counts,
+        "unjustified_block": len(unjustified),
+        "unjustified": unjustified,
+        "unjustified_block_rate": round(len(unjustified) / total, 4) if total else 0.0,
+        "pass_rate": round(counts["PASS"] / total, 4) if total else 0.0,
+    }
+
+
 def check_thresholds(scores: dict, path: Path = None) -> list[str]:
     path = path or THRESHOLDS
     with open(path, "rb") as fh:
@@ -76,6 +115,9 @@ def check_thresholds(scores: dict, path: Path = None) -> list[str]:
             "max_block_chars": (s["max_block_chars"], lambda v, lim: v <= lim),
             "max_median_seconds": (s["timing"]["median_seconds"], lambda v, lim: v <= lim),
         }
+        if "real" in s:
+            checks["max_unjustified_block_rate"] = (s["real"]["unjustified_block_rate"], lambda v, lim: v <= lim)
+            checks["min_real_pass_rate"] = (s["real"]["pass_rate"], lambda v, lim: v >= lim)
         for key, limit in rules.items():
             if key not in checks:
                 continue
@@ -117,6 +159,11 @@ def _markdown(scores: dict, versions: dict, date: str, cases: list[Case], classe
             cells.append(f"{c['BLOCK']} / {c['REVIEW']} / {c['PASS']} of {c['total']}" if c else "-")
         lines.append(f"| {cls}{mark} | " + " | ".join(cells) + " |")
     lines += ["", "A case counts as caught when the verdict is at least as strict as the case expects."]
+    for name, sc in scores.items():
+        r = sc.get("real")
+        if r:
+            lines += ["", f"Real skills ({name}): {r['units']} skills; PASS {r['PASS']}, REVIEW {r['REVIEW']}, BLOCK {r['BLOCK']}; "
+                      f"unjustified blocks {r['unjustified_block']} ({r['unjustified_block_rate']:.1%}); PASS rate {r['pass_rate']:.1%}."]
     return "\n".join(lines) + "\n"
 
 
@@ -127,6 +174,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", default=str(BENCH / "results"))
     parser.add_argument("--date", default="")
     parser.add_argument("--check-thresholds", action="store_true")
+    parser.add_argument("--real", help="folder of real skills fetched with bench.fetch_real")
     parser.add_argument("--include-av-sensitive", action="store_true",
                         help="also write cases that antivirus software flags (for CI runners without antivirus)")
     args = parser.parse_args(argv)
@@ -160,6 +208,8 @@ def main(argv: list[str] | None = None) -> int:
     finally:
         shutil.rmtree(workdir, ignore_errors=True)
 
+    if args.real and "self" in scores:
+        scores["self"]["real"] = score_real(Path(args.real), load_triage())
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     published_args: list[str] = []
@@ -168,7 +218,7 @@ def main(argv: list[str] | None = None) -> int:
         if skip_next:
             skip_next = False
             continue
-        if a == "--out":
+        if a in ("--out", "--real"):
             skip_next = True
             continue
         if a != "--check-thresholds" and not a.startswith("--out="):
