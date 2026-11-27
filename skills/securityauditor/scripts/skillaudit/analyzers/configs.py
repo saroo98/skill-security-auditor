@@ -10,7 +10,7 @@ import json
 import re
 import tomllib
 
-from ..model import Capability, FileEntry
+from ..model import CapList, Capability, FileEntry
 from . import shell
 
 INTERPRETERS = {"bash", "sh", "zsh", "node", "python", "python3", "py", "deno", "bun", "pwsh", "powershell", "ruby", "perl"}
@@ -257,7 +257,7 @@ def problems(entry: FileEntry) -> list[str]:
 class _Config:
     def __init__(self, entry: FileEntry) -> None:
         self.entry = entry
-        self.caps: list[Capability] = []
+        self.caps: list[Capability] = CapList()
         self.text = entry.text or ""
 
     def line_of(self, needle: str) -> int | None:
@@ -413,7 +413,7 @@ def frontmatter_caps(entry: FileEntry) -> list[Capability]:
         items = [str(t) for t in tools]
     else:
         return []
-    caps: list[Capability] = []
+    caps: list[Capability] = CapList()
     text = entry.text or ""
     for item in items:
         item = item.strip()

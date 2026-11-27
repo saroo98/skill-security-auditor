@@ -165,7 +165,7 @@ def tree_hash(root: Path) -> str:
 def _copy_tree(src: Path, dest: Path) -> None:
     for dirpath, dirnames, filenames in os.walk(src, followlinks=False):
         here = Path(dirpath)
-        dirnames[:] = sorted(d for d in dirnames if not (here / d).is_symlink() and d != ".git")
+        dirnames[:] = sorted(d for d in dirnames if not (here / d).is_symlink())
         rel_dir = here.relative_to(src)
         (dest / rel_dir).mkdir(parents=True, exist_ok=True)
         for name in sorted(filenames):

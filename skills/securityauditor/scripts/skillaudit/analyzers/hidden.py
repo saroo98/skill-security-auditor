@@ -9,7 +9,7 @@ import re
 import unicodedata
 from urllib.parse import urlparse
 
-from ..model import Capability, FileEntry
+from ..model import CapList, Capability, FileEntry
 
 ZERO_WIDTH = {0x200B, 0x2060, 0xFEFF, 0x200D}
 BIDI_OVERRIDES = {0x202D, 0x202E, 0x2066, 0x2067, 0x2068, 0x2069}
@@ -57,7 +57,7 @@ def _decoded_text(blob: str, kind: str) -> str | None:
 
 def analyze(entry: FileEntry, depth: int = 0) -> list[Capability]:
     text = entry.text or ""
-    caps: list[Capability] = []
+    caps: list[Capability] = CapList()
 
     def add(kind: str, line: int | None, snippet: str, confidence: str = "high", **detail: str) -> None:
         cap = Capability(kind, entry.rel, line, snippet[:300], confidence, tuple(sorted(detail.items())))

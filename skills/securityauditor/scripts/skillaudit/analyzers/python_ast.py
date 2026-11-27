@@ -7,7 +7,7 @@ import warnings
 from urllib.parse import urlparse
 
 from ..data import is_secret_name, is_secret_path
-from ..model import Capability, FileEntry
+from ..model import CapList, Capability, FileEntry
 from . import shell
 
 EXEC_SHELL = {
@@ -132,7 +132,7 @@ class _Analyzer:
     def __init__(self, entry: FileEntry, tree: ast.Module) -> None:
         self.entry = entry
         self.lines = (entry.text or "").splitlines()
-        self.caps: list[Capability] = []
+        self.caps: list[Capability] = CapList()
         self.aliases: dict[str, str] = {}
         self.consts: dict[str, str] = {}
         self.parents: dict[ast.AST, ast.AST] = {}
@@ -384,7 +384,7 @@ def analyze(entry: FileEntry) -> list[Capability]:
     except (SyntaxError, ValueError, RecursionError, MemoryError):
         from . import generic
 
-        return [Capability("obfuscation", entry.rel, None, "file does not parse as Python", "low", (("why", "unparseable"),))]             + generic.scan_text(text, entry.rel)
+        return [Capability("unparsed", entry.rel, None, "file does not parse as Python", "low", (("why", "unparseable"),))]             + generic.scan_text(text, entry.rel)
     try:
         return _Analyzer(entry, tree).run()
     except RecursionError:

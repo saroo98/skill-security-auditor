@@ -14,6 +14,7 @@ from .checks import RULESET_VERSION
 from .engine import scan_path
 from .model import VERDICT_RANK, Finding, ScanResult
 from .policy import can_summary, unprompted_summary
+from .sanitize import sanitize
 
 SCHEMA = 1
 _HOSTS = re.compile(r"\(([^)]*)\)$")
@@ -161,10 +162,11 @@ def diff_dirs(old: Path, new: Path) -> Drift:
 
 
 def describe(drift: Drift, *, quiet: bool = False) -> list[str]:
+    name = sanitize(drift.name, 120)
     if drift.missing:
-        return [f"changed: {drift.name}: the installed folder is missing"]
+        return [f"changed: {name}: the installed folder is missing"]
     n = len(drift.added_files) + len(drift.removed_files) + len(drift.changed_files)
-    lines = [f"changed: {drift.name}: {n} files differ from the approved version"]
+    lines = [f"changed: {name}: {n} files differ from the approved version"]
     if quiet:
         return lines
     for label, items in (("added files", drift.added_files), ("removed files", drift.removed_files),
@@ -172,7 +174,8 @@ def describe(drift: Drift, *, quiet: bool = False) -> list[str]:
                          ("removed capabilities", drift.removed_capabilities), ("new hosts", drift.new_hosts),
                          ("new runs-without-asking", drift.new_unprompted)):
         if items:
-            lines.append(f"  {label}: {', '.join(items[:10])}" + (f" (+{len(items) - 10})" if len(items) > 10 else ""))
+            shown = ", ".join(sanitize(i, 160) for i in items[:10])
+            lines.append(f"  {label}: {shown}" + (f" (+{len(items) - 10})" if len(items) > 10 else ""))
     for f in drift.new_findings[:10]:
-        lines.append(f"  new {f.severity} {f.check_id} {f.file}:{f.line or ''} {f.message}")
+        lines.append(f"  new {f.severity} {sanitize(f.check_id, 60)} {sanitize(f.file, 160)}:{f.line or ''} {sanitize(f.message, 200)}")
     return lines

@@ -30,6 +30,13 @@ class Source:
     ambiguous_ref: bool = False
 
 
+def _safe_subpath(parts: list[str], display: str) -> str:
+    for part in parts:
+        if part in (".", "..") or ".." in part or ":" in part or chr(92) in part or "%" in part or part.startswith("~"):
+            raise FetchError(f"path inside the repository is not allowed: {display}")
+    return "/".join(parts)
+
+
 def _codeload(owner: str, repo: str, ref: str) -> str:
     return f"https://codeload.github.com/{owner}/{repo}/tar.gz/{ref}"
 
@@ -41,7 +48,8 @@ def _github(owner: str, repo: str, rest: list[str], display: str) -> Source:
         ref, path = rest[1], rest[2:]
         if rest[0] == "blob" and path and path[-1] == "SKILL.md":
             path = path[:-1]
-        return Source("url", _codeload(owner, repo, ref), "/".join(path), display, owner_repo, ambiguous_ref=bool(path))
+        return Source("url", _codeload(owner, repo, ref), _safe_subpath(path, display), display, owner_repo,
+                      ambiguous_ref=bool(path))
     if rest:
         raise FetchError(f"cannot tell what this address is: {display}")
     return Source("url", _codeload(owner, repo, "HEAD"), "", display, owner_repo)
@@ -69,7 +77,7 @@ def resolve(address: str) -> Source:
         raise FetchError(f"cannot tell what this address is: {address}")
     if _SHORTHAND.match(address) and "\\" not in address:
         parts = [p for p in address.split("/") if p]
-        owner, repo, sub = parts[0], parts[1], "/".join(parts[2:])
+        owner, repo, sub = parts[0], parts[1], _safe_subpath(parts[2:], address)
         repo = repo[:-4] if repo.endswith(".git") else repo
         return Source("url", _codeload(owner, repo, "HEAD"), sub, address, f"{owner}/{repo}")
     raise FetchError(f"cannot tell what this address is: {address}")

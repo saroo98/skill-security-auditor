@@ -71,9 +71,11 @@ def _try(data: bytes, encoding: str) -> tuple[str | None, str | None]:
 
 
 def _kind(name: str, data: bytes, text: str | None) -> str:
+    suffix = os.path.splitext(name)[1].lower()
+    if EXT_KIND.get(suffix) in ("document", "media"):
+        return EXT_KIND[suffix]  # .docx/.xlsx/.pptx are zip files; they are documents, not executables
     if any(data.startswith(m) for m in BINARY_MAGIC):
         return "binary"
-    suffix = os.path.splitext(name)[1].lower()
     if suffix in EXT_KIND:
         kind = EXT_KIND[suffix]
         if text is None and kind not in ("media", "document"):
@@ -129,6 +131,9 @@ def classify(path: Path | None, rel: str, data: bytes, files: list[FileEntry], n
     if kind in NOT_CHECKED_SEVERITY:
         not_checked.append(NotChecked(rel, NOT_CHECKED_REASON[kind], NOT_CHECKED_SEVERITY[kind]))
         if kind == "other-source" and text is not None:
+            text, truncated = _truncate_lines(text)
+            for line in truncated:
+                not_checked.append(NotChecked(rel, f"line {line} truncated at {MAX_LINE} characters", "medium"))
             files.append(FileEntry(path, rel, kind, _role(rel, kind), text, encoding, size))
         return
     assert text is not None
@@ -138,7 +143,8 @@ def classify(path: Path | None, rel: str, data: bytes, files: list[FileEntry], n
     files.append(FileEntry(path, rel, kind, _role(rel, kind), text, encoding, size))
 
 
-def discover(root: Path, *, max_file_size: int = 1_048_576, max_files: int = 2000) -> tuple[list[FileEntry], list[NotChecked]]:
+def discover(root: Path, *, max_file_size: int = 1_048_576, max_files: int = 2000,
+             include_deps: bool = False) -> tuple[list[FileEntry], list[NotChecked]]:
     root = Path(root)
     files: list[FileEntry] = []
     not_checked: list[NotChecked] = []
@@ -163,7 +169,7 @@ def discover(root: Path, *, max_file_size: int = 1_048_576, max_files: int = 200
                 not_checked.append(NotChecked(rel, "symbolic link, not followed", "medium"))
                 continue
             if entry.is_dir(follow_symlinks=False):
-                if entry.name in SKIP_DIRS:
+                if entry.name in SKIP_DIRS and not include_deps:
                     not_checked.append(NotChecked(rel, "dependency or VCS directory", "info"))
                     continue
                 walk(Path(entry.path), rel + "/")

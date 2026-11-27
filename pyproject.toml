@@ -23,6 +23,9 @@ keywords = [
 [project.scripts]
 skillaudit = "skillaudit.cli:main"
 
+[tool.setuptools.package-data]
+skillaudit = ["*.txt"]
+
 [tool.setuptools.packages.find]
 where = ["skills/securityauditor/scripts"]
 include = ["skillaudit*"]

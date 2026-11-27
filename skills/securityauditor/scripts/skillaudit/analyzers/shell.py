@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from urllib.parse import urlparse
 
 from ..data import is_secret_path
-from ..model import Capability, FileEntry
+from ..model import CapList, Capability, FileEntry
 
 FETCHERS = {"curl", "wget", "fetch", "iwr", "invoke-webrequest", "irm", "invoke-restmethod", "http", "https",
             "aria2c", "httpie", "xh"}
@@ -290,7 +290,7 @@ class ShellAnalyzer:
     def __init__(self, file: str, confidence: str = "high") -> None:
         self.file = file
         self.confidence = confidence
-        self.caps: list[Capability] = []
+        self.caps: list[Capability] = CapList()
         self.downloaded: set[str] = set()
         self.tainted_vars: dict[str, str] = {}
         self.tainted_files: dict[str, str] = {}

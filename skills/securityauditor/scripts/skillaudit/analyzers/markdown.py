@@ -11,7 +11,7 @@ from __future__ import annotations
 import bisect
 import re
 
-from ..model import Capability, FileEntry
+from ..model import CapList, Capability, FileEntry
 from . import shell
 
 I = re.IGNORECASE
@@ -98,7 +98,7 @@ def _descriptive(prefix: str) -> bool:
 class _Prose:
     def __init__(self, entry: FileEntry) -> None:
         self.entry = entry
-        self.caps: list[Capability] = []
+        self.caps: list[Capability] = CapList()
 
     def add(self, kind: str, line: int, snippet: str, confidence: str = "high", **detail: str) -> None:
         cap = Capability(kind, self.entry.rel, line, " ".join(snippet.split())[:300], confidence, tuple(sorted(detail.items())))

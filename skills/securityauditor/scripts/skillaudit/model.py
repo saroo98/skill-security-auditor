@@ -59,6 +59,27 @@ class Capability:
         return dict(self.detail).get(key, default)
 
 
+class CapList(list):
+    """A list of capabilities with constant-time membership tests (analyzers deduplicate often)."""
+
+    def __init__(self, items=()) -> None:
+        super().__init__()
+        self._seen: set = set()
+        for item in items:
+            self.append(item)
+
+    def append(self, item) -> None:  # type: ignore[override]
+        self._seen.add(item)
+        super().append(item)
+
+    def extend(self, items) -> None:  # type: ignore[override]
+        for item in items:
+            self.append(item)
+
+    def __contains__(self, item) -> bool:
+        return item in self._seen
+
+
 @dataclass(frozen=True)
 class Finding:
     check_id: str

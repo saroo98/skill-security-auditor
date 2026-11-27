@@ -12,10 +12,11 @@ from . import graph, policy
 from .checks import CHECKS
 from .analyzers import configs, generic, hidden, javascript, markdown, powershell, python_ast, shell
 from .discovery import _role, discover
-from .model import Capability, FileEntry, NotChecked, ScanResult, UnitResult, make_finding, verdict_for
+from .model import CapList, Capability, FileEntry, NotChecked, ScanResult, UnitResult, make_finding, verdict_for
 from .quarantine import tree_hash
 
 REPOSITORY_UNIT = "(repository)"
+SCAN_BUDGET_SECONDS = 60
 IN_TREE_SUPPRESSION_FILES = {".skillaudit.toml", "skillaudit-baseline.json", ".skillauditignore"}
 _IGNORE_MARK = re.compile(r"\b(skillaudit|skillspector)\s*:\s*(ignore|disable|skip)", re.IGNORECASE)
 ANALYZERS: dict[str, Callable[[FileEntry], list[Capability]]] = {
@@ -53,7 +54,7 @@ def analyze_entry(entry: FileEntry) -> list[Capability]:
     if entry.text is None:
         return []
     analyzer = ANALYZERS.get(entry.kind)
-    caps = analyzer(entry) if analyzer else []
+    caps = CapList(analyzer(entry) if analyzer else [])
     for cap in hidden.analyze(entry):
         if cap not in caps:
             caps.append(cap)
@@ -97,10 +98,12 @@ def resolve_unprompted(caps: list[Capability], analyzed: set[str]) -> list[Capab
     return out
 
 
-def scan_path(root: Path, *, max_file_size: int = 1_048_576) -> ScanResult:
+def scan_path(root: Path, *, max_file_size: int = 1_048_576, include_deps: bool = False) -> ScanResult:
+    """include_deps scans dependency and VCS folders too; check uses it, since anything in a downloaded
+    skill can be installed with it."""
     start = time.perf_counter()
     root = Path(root)
-    files, not_checked = discover(root, max_file_size=max_file_size)
+    files, not_checked = discover(root, max_file_size=max_file_size, include_deps=include_deps)
     result = scan_entries(files, not_checked, root_name=root.name or "skill")
     result.tree_hash = tree_hash(root) if root.is_dir() else ""
     result.elapsed = time.perf_counter() - start
@@ -149,6 +152,9 @@ def scan_entries(files: list[FileEntry], not_checked: list[NotChecked], *, root_
             name = skill_name(skill_md.text if skill_md else None, fallback)
         capabilities: list[Capability] = []
         for entry in unit_files:
+            if time.perf_counter() - start > SCAN_BUDGET_SECONDS:
+                unit_nc.append(NotChecked(entry.rel, f"scan time budget of {SCAN_BUDGET_SECONDS}s reached", "medium"))
+                continue
             capabilities.extend(analyze_entry(entry))
             unit_nc.extend(config_problems(entry))
         capabilities = resolve_unprompted(capabilities, {f.rel for f in files if f.kind in ANALYZERS and f.text is not None})
@@ -175,7 +181,14 @@ def scan_entries(files: list[FileEntry], not_checked: list[NotChecked], *, root_
             if item.reason.startswith("binary") and item.rel in pointed_at:
                 check = CHECKS["binary-referenced"]
                 findings.append(make_finding(check.id, check.severity, item.rel, None, check.title, item.rel))
+        skipped = [n.rel for n in unit_nc if n.reason == "dependency or VCS directory"]
+        texts = [f.text or "" for f in unit_files if f.role in ("instruction", "executable", "config")]
+        for i, item in enumerate(unit_nc):
+            if item.rel in skipped and any(item.rel.rsplit("/", 1)[-1] + "/" in t for t in texts):
+                unit_nc[i] = NotChecked(item.rel, "dependency or VCS directory that the skill refers to; not checked", "medium")
         for source, target in graph.missing_references(unit_files, refs, all_rels):
+            if any(target.startswith(s.rsplit("/", 1)[-1] + "/") or ("/" + s.rsplit("/", 1)[-1] + "/") in target for s in skipped):
+                continue
             check = CHECKS["missing-reference"]
             findings.append(make_finding(check.id, check.severity, source, None, check.title, target))
         severities = [f.severity for f in findings] + [n.severity for n in unit_nc]

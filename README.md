@@ -65,7 +65,7 @@ Unless the static checks already blocked the skill, the output also contains a c
 | Says one thing, does another | Capabilities compared with what `SKILL.md` says the skill does. |
 | Meaning | Paraphrased and non-English instructions, by the model review. |
 
-Every check has a page with a flagged and a not-flagged example in [docs/checks](docs/checks). Star, fork and download counts are never used. How it fits together: [docs/design.md](docs/design.md).
+Every check has a page with a flagged and a not-flagged example in [docs/checks](docs/checks). Star, fork and download counts are never used. How it fits together: [docs/how-it-works.md](docs/how-it-works.md).
 
 ## Install and pin
 

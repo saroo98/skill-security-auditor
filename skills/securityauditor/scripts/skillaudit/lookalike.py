@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-KNOWN_FILE = Path(__file__).resolve().parents[2] / "references" / "known-sources.txt"
+KNOWN_FILE = Path(__file__).resolve().parent / "known-sources.txt"
 MIN_LENGTH = 8
 
 

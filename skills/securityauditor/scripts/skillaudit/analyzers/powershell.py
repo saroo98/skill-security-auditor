@@ -6,7 +6,7 @@ import re
 from urllib.parse import urlparse
 
 from ..data import is_secret_path
-from ..model import Capability, FileEntry
+from ..model import CapList, Capability, FileEntry
 from . import shell
 
 _EXECUTE = re.compile(r"\b(iex|invoke-expression)\b", re.IGNORECASE)
@@ -29,7 +29,7 @@ def _args(rest: str) -> list[str]:
 
 
 def analyze(entry: FileEntry) -> list[Capability]:
-    caps: list[Capability] = []
+    caps: list[Capability] = CapList()
 
     def add(kind: str, number: int, line: str, **detail: str | None) -> None:
         cap = Capability(kind, entry.rel, number, line.strip()[:300], "high",

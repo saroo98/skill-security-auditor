@@ -28,6 +28,7 @@ from .quarantine import UnsafeArchive, archive_commit, cache_get, cache_put, hom
 
 SUBCOMMANDS = ("scan", "check", "install", "pin", "verify", "diff")
 CHECK_EXIT = {"PASS": 0, "BLOCK": 1, "REVIEW": 3}
+MAX_PACKET_UNITS = 5
 
 
 def _fails(result: ScanResult, threshold: str) -> bool:
@@ -94,12 +95,15 @@ def _instruction_files(root: Path, unit_root: str) -> list[tuple[str, str]]:
 def _packets(result: ScanResult, root: Path) -> list[str]:
     """Build one packet per unit that static analysis did not block; record cuts as not-checked items."""
     packets: list[str] = []
-    candidates = [u for u in result.units if u.verdict != "BLOCK" and u.root_rel is not None]
-    share = max(2000, LIMIT // max(1, len(candidates)))
-    for unit in candidates:
-        if unit.name == "(repository)":
-            continue
-        packet, cut = build_packet(unit, _instruction_files(root, unit.root_rel), limit=min(LIMIT, share))
+    candidates = [u for u in result.units if u.verdict != "BLOCK" and u.name != "(repository)"]
+    candidates.sort(key=lambda u: -VERDICT_RANK[u.verdict])  # REVIEW before PASS
+    reviewed, skipped = candidates[:MAX_PACKET_UNITS], candidates[MAX_PACKET_UNITS:]
+    for unit in skipped:
+        unit.not_checked.append(NotChecked(unit.root_rel or ".", "too many skills for one review; check this skill's own path", "medium"))
+        unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
+    share = LIMIT // max(1, len(reviewed))  # the packets together stay within LIMIT
+    for unit in reviewed:
+        packet, cut = build_packet(unit, _instruction_files(root, unit.root_rel), limit=share)
         if cut:
             unit.not_checked.extend(NotChecked(rel, "not fully included in the review packet", "medium") for rel in cut)
             unit.verdict = verdict_for([f.severity for f in unit.findings] + [n.severity for n in unit.not_checked])
@@ -125,6 +129,9 @@ def cmd_check(args: argparse.Namespace) -> int:
         print(f"Cannot check {args.address}: {' '.join(str(exc).split())}", file=sys.stderr)
         return 2
     target = qdir / source.subpath if source.subpath else qdir
+    if source.subpath and not target.resolve().is_relative_to(qdir.resolve()):
+        print(f"Cannot check {args.address}: path leaves the download: {source.subpath}", file=sys.stderr)
+        return 2
     if not target.is_dir():
         print(f"Cannot check {args.address}: path not found in the download: {source.subpath}", file=sys.stderr)
         return 2
@@ -135,7 +142,7 @@ def cmd_check(args: argparse.Namespace) -> int:
     if cached is not None:
         result = result_from_dict(cached["result"])
     else:
-        result = scan_path(target)
+        result = scan_path(target, include_deps=True)
         commit = archive_commit(fetched) if fetched is not None else None
         cache_put(cache_key, RULESET_VERSION, {
             "result": result_to_dict(result),

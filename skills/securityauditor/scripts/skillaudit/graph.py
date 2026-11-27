@@ -10,7 +10,9 @@ from .model import FileEntry
 
 _LINK = re.compile(r"\]\(([^)\s#]+)(?:#[^)]*)?(?:\s+\"[^\"]*\")?\)")
 _TICK = re.compile(r"`([^`\n]+)`")
-_PATH = re.compile(r"(?:\$\{?[A-Z_]+\}?/|\./|\.\./)?(?:[\w.@-]+/)*[\w@-][\w.@-]*\.[A-Za-z0-9]{1,6}\b")
+_PATH_TOKEN = re.compile(r"(?:\$\{?[A-Z_]+\}?/|\./|\.\./)?[\w.@/-]{1,300}\.[A-Za-z0-9]{1,6}")
+_SPLIT = re.compile(r"[\s`'\"()\[\]<>,;|&=]+")
+MAX_TOKEN_LINE = 2000
 _ROOT_VAR = re.compile(r"^\$\{?[A-Z_]+\}?/")
 _PY_IMPORT = re.compile(r"^\s*(?:from\s+(\.*)([\w.]*)\s+import\s+([\w, ]+)|import\s+([\w., ]+))", re.MULTILINE)
 _JS_IMPORT = re.compile(r"(?:require\(\s*|from\s+|import\s*\(\s*)['\"](\.{1,2}/[^'\"]+)['\"]")
@@ -47,6 +49,17 @@ def _resolve(cand: str, base_dir: str, all_rels: set[str]) -> str | None:
     return matches[0] if len(matches) == 1 else (sorted(matches, key=len)[0] if matches else None)
 
 
+def _path_tokens(text: str) -> list[str]:
+    """Path-like tokens, found per line and per separated token so the cost stays linear."""
+    out: list[str] = []
+    for line in text.splitlines():
+        for token in _SPLIT.split(line[:MAX_TOKEN_LINE]):
+            token = token.rstrip(".:")
+            if 3 <= len(token) <= 300 and "." in token and _PATH_TOKEN.fullmatch(token):
+                out.append(token)
+    return out
+
+
 def _tokens(entry: FileEntry) -> list[str]:
     text = entry.text or ""
     out: list[str] = []
@@ -54,9 +67,7 @@ def _tokens(entry: FileEntry) -> list[str]:
         out += _LINK.findall(text)
         for span in _TICK.findall(text):
             out += span.split()
-        out += _PATH.findall(text)
-    else:
-        out += _PATH.findall(text)
+    out += _path_tokens(text)
     if entry.kind == "javascript":
         out += _JS_IMPORT.findall(text)
     return out

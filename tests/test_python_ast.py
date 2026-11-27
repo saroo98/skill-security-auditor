@@ -114,7 +114,7 @@ def test_regex_strings_are_not_calls():
 
 
 def test_syntax_error_does_not_raise():
-    assert kinds("def broken(:\n") == {"obfuscation"}
+    assert kinds("def broken(:\n") == {"unparsed"}
 
 
 def test_pickle_loads_is_dynamic():

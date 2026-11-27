@@ -7,7 +7,7 @@ import re
 from urllib.parse import urlparse
 
 from ..data import is_secret_name, is_secret_path
-from ..model import Capability, FileEntry
+from ..model import CapList, Capability, FileEntry
 from . import shell
 
 CONF = "medium"
@@ -92,7 +92,7 @@ class _JS:
     def __init__(self, entry: FileEntry) -> None:
         self.rel = entry.rel
         self.code, self.strings = lex(entry.text or "")
-        self.caps: list[Capability] = []
+        self.caps: list[Capability] = CapList()
         self.lines = (entry.text or "").splitlines()
 
     def line_of(self, pos: int) -> int:
